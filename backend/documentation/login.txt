@@ -38,5 +38,61 @@ Token rotation
 Logout
 
 
+Access Tokens + Refresh tokens
+Access Token
+→ short-lived
+→ used for API authorization
+
+Refresh Token
+→ long-lived
+→ used to obtain a new access token
+→ stored as a hash in PostgreSQL
+→ sent through HTTP-only cookie
 
 
+Why hash the refresh token?
+we dont want this in postgresql
+
+refreshTokenHash -> actual JWT
+
+instead: 
+ Refresh Token
+     ↓
+   SHA-256
+     ↓
+   Hash
+     ↓
+ PostgreSQL
+
+SHA-256 is a cryptographic hash function that turns any input text or file into a unique, fixed 256-bit (64-character hexadecimal) digital fingerprint
+
+here, If someone gets database access, they shouldn't immediately get usable refresh tokens.
+
+
+your client should receive a cookie:
+refreshToken
+HttpOnly
+
+                    LOGIN
+                      │
+                      ▼
+               Verify password
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+       Access Token       Refresh Token
+          15 min              7 days
+             │                 │
+             │                 ▼
+             │           SHA-256 hash
+             │                 │
+             │                 ▼
+             │             PostgreSQL
+             │
+             ▼
+          API calls
+
+Refresh Token
+      │
+      ▼
+HTTP-only Cookie
