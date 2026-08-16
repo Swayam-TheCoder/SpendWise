@@ -1,0 +1,31 @@
+Logout Flow:
+POST /api/auth/logout
+        ↓
+Read refreshToken cookie
+        ↓
+Hash refresh token
+        ↓
+Find matching session
+        ↓
+Delete session
+        ↓
+Clear cookie
+
+Authentication Flow:
+Signup
+  ↓
+Login
+  ↓
+Access Token + Refresh Token
+  ↓
+Protected APIs
+  ↓
+Access Token expires
+  ↓
+Refresh + Rotation
+  ↓
+New Tokens
+  ↓
+Logout
+  ↓
+Session deleted

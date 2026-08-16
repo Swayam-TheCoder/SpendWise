@@ -1,5 +1,5 @@
 import { signupSchema, loginSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession } from "../services/auth.service.js";
+import { signup, login, refreshSession, logout } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -157,6 +157,33 @@ export const refreshController = async (req, res) => {
     return res.status(401).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+
+export const logoutController = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    await logout(refreshToken);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
     });
   }
 };
