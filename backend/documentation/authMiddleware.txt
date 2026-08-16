@@ -1,0 +1,52 @@
+Flow:
+
+Client
+  │
+  │ Authorization: Bearer <accessToken>
+  ▼
+auth.middleware.js
+  │
+  ├── Check token
+  ├── Verify JWT
+  └── Extract userId
+        │
+        ▼
+     Controller
+        │
+        ▼
+    PostgreSQL
+
+
+GET /me
+    ↓
+authenticate
+    ↓
+getMeController
+
+The controller cannot run unless authentication succeeds.
+
+
+Architecture:
+
+                    LOGIN
+                      │
+              ┌───────┴───────┐
+              ▼               ▼
+        Access Token     Refresh Token
+          15 minutes         7 days
+              │               │
+              │               ▼
+              │          HTTP-only Cookie
+              │               │
+              ▼               ▼
+       Authorization       PostgreSQL
+          Header           Session Hash
+              │
+              ▼
+      authenticate()
+              │
+              ▼
+          req.userId
+              │
+              ▼
+         Controller
