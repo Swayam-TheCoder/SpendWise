@@ -1,5 +1,7 @@
 import { signupSchema, loginSchema } from "../validators/auth.validator.js";
-import { signup, login } from "../services/auth.service.js";
+import { signup, login, refreshSession } from "../services/auth.service.js";
+import prisma from "../config/prisma.js";
+
 
 export const signupController = async (req, res) => {
   try {
@@ -85,6 +87,76 @@ export const loginController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+export const getMeController = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.userId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        authProvider: true,
+        isEmailVerified: true,
+        isActive: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+export const refreshController = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    const result = await refreshSession(refreshToken);
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Token refreshed",
+      data: {
+        accessToken: result.accessToken,
+      },
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: error.message,
     });
   }
 };

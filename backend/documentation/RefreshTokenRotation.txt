@@ -1,0 +1,95 @@
+Problem:
+Access token expires after 15 min
+            ↓
+User shouldn't have to login again
+            ↓
+Use refresh token
+            ↓
+Issue new access + refresh token
+
+Flow:
+HTTP-only refresh cookie
+        ↓
+/api/auth/refresh
+        ↓
+Verify refresh JWT
+        ↓
+Find session
+        ↓
+Compare token hash
+        ↓
+Rotate refresh token
+        ↓
+Delete old session
+        ↓
+Create new session
+        ↓
+Return new access token
+
+Why delete the old session?
+Suppose someone steals the old refresh token:
+Old Refresh Token
+       ↓
+Used once
+       ↓
+Old session deleted
+       ↓
+Token can't be used again
+That's the basic idea behind refresh-token rotation.
+
+
+You should receive: accessToken and a refreshToken cookie
+
+
+-- Main Purpose: Refresh token rotation is mainly security + keeping the user logged in.
+Access tokens are short-lived:
+Access Token -> 15 min
+
+When it expires, we use the refresh token to get a new one:
+Refresh Token -> New Access Token
+
+why rotate?
+Instead of reusing the same refresh token forever:
+
+Old Refresh Token -> New Refresh Token
+
+The old token/session is invalidated.
+So if an old refresh token gets stolen, it has a much smaller window of usefulness.
+
+
+
+Final Authentication System:
+
+                SIGNUP
+                  ↓
+             PostgreSQL
+                  │
+                  │
+                LOGIN
+                  ↓
+          Verify Argon2 password
+                  ↓
+        ┌─────────┴─────────┐
+        ↓                   ↓
+ Access Token          Refresh Token
+   15 minutes             7 days
+        ↓                   ↓
+ Authorization       HTTP-only Cookie
+ Header                    ↓
+        │              Session Hash
+        │                   ↓
+        └───────┐      PostgreSQL
+                ↓
+          Protected API
+                │
+                ↓
+         Token expires
+                │
+                ↓
+       POST /auth/refresh
+                │
+                ↓
+       Rotate both tokens
+                │
+                ↓
+          Continue session
