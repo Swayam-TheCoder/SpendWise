@@ -1,0 +1,54 @@
+--> Problem: We initially used Prisma 7.9.1 with a JavaScript backend.
+The error was
+Cannot find module
+'.prisma/client/default'
+
+Then after using Prisma's new generated client:
+Cannot find module
+'generated/prisma/client.js'
+
+Why??
+Prisma 7 changed how the client is generated.
+Our project was JavaScript, but Prisma 7's:
+provider = "prisma-client"
+
+generated files such as:
+generated/prisma/client.ts
+
+So Node couldn't find the file.
+We also had some Prisma 7-specific configuration such as:
+prisma.config.ts
+@prisma/adapter-pg
+which made the setup different from the traditional Prisma JavaScript setup.
+
+
+--> Solution:
+
+Because this project is currently JavaScript, we decided to use Prisma 6, which fits our setup more simply.
+
+Prisma configuration:
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+Client:
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+export default prisma;
+
+then: npx prisma generate 
+then: nodemon server.js
+
+Result: User successfully created
+
+
+When Prisma, @prisma/client, the generator, and the generated client don't match, you'll get confusing module errors. First check the versions:
+
+npm list prisma @prisma/client
+
+and then make sure the generator configuration matches the Prisma version and project language.

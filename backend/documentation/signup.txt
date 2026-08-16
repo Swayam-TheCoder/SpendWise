@@ -1,0 +1,79 @@
+Signup flow:
+Client
+  ↓
+POST /api/auth/signup
+  ↓
+Route
+  ↓
+Zod Validation
+  ↓
+Auth Controller
+  ↓
+Auth Service
+  ↓
+Check email
+  ↓
+Hash password with Argon2
+  ↓
+Create User with Prisma
+  ↓
+PostgreSQL
+  ↓
+Return safe user data
+
+
+Files involved:
+routes/auth.routes.js
+        ↓
+controllers/auth.controller.js
+        ↓
+validators/auth.validator.js
+        ↓
+services/auth.service.js
+        ↓
+config/prisma.js
+        ↓
+PostgreSQL
+
+what happens?
+
+1. validate input: zod checks 
+name     → 2-50 characters
+email    → valid email
+password → 8-128 characters
+
+2. checks existing user
+prisma.user.findUnique({
+  where: { email }
+});
+
+3. Hash password: we never store
+StrongPassword123
+
+instead: Argon2 makes this
+StrongPassword123
+        ↓
+      Argon2
+        ↓
+$argon2id$..
+
+4. Create User
+Prisma inserts the user into PostgreSQL.
+
+5. Return safe data
+We return:
+id
+name
+email
+authProvider
+isEmailVerified
+createdAt
+
+We never return the password.
+
+
+Later modifications:
+Email verification
+Rate limiting
+Duplicate/abuse protection
+Audit logging
