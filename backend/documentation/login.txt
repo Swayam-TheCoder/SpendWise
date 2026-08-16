@@ -1,0 +1,42 @@
+login flow:
+
+POST /api/auth/login
+        ↓
+Validate input
+        ↓
+Find user by email
+        ↓
+Get hashed password
+        ↓
+Argon2.verify()
+        ↓
+Update lastLoginAt
+        ↓
+Create authentication tokens
+        ↓
+Set secure HTTP-only cookies
+        ↓
+Return user
+
+
+we split it in 2 parts:
+1st part: Verify credentials
+email + password
+       ↓
+find User
+       ↓
+verify Argon2 hash
+       ↓
+login successful
+
+2nd part: Authentication tokens
+Access Token
+Refresh Token
+HTTP-only cookies
+Session table
+Token rotation
+Logout
+
+
+
+
