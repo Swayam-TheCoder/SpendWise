@@ -1,0 +1,31 @@
+Rate Limiting for Authentication
+
+Stop someone from repeatedly doing:
+POST /login
+POST /login
+POST /login
+POST /login
+
+
+Solution:
+
+10 requests
+    ↓
+within 15 minutes
+    ↓
+same client/IP
+    ↓
+blocked temporarily
+
+we don't rate-limit /me here because It's already protected by the access token.
+
+Why logout doesn't need this limiter?
+Logout is generally harmless:
+POST /logout
+Calling it repeatedly doesn't help an attacker much.
+
+After the configured limit, you will receive:
+{
+  "success": false,
+  "message": "Too many authentication attempts. Try again later."
+}

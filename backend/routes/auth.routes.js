@@ -1,13 +1,27 @@
 import express from "express";
-import { signupController, loginController, getMeController, refreshController, logoutController } from "../controllers/auth.controller.js";
+
+import {
+  signupController,
+  loginController,
+  refreshController,
+  logoutController,
+  getMeController,
+} from "../controllers/auth.controller.js";
+
 import { authenticate } from "../middleware/auth.middleware.js";
+
+import { authRateLimiter } from "../middleware/rateLimit.middleware.js";
 
 const router = express.Router();
 
-router.post("/signup", signupController);
-router.post("/login", loginController);
-router.get("/me", authenticate, getMeController);
-router.post("/refresh", refreshController);
+router.post("/signup", authRateLimiter, signupController);
+
+router.post("/login", authRateLimiter, loginController);
+
+router.post("/refresh", authRateLimiter, refreshController);
+
 router.post("/logout", logoutController);
+
+router.get("/me", authenticate, getMeController);
 
 export default router;
