@@ -1,0 +1,38 @@
+Note: if you changed the schema.prisma then make sure to run
+npx prisma migrate dev --name init
+npx prisma generate 
+
+
+TOPIC: verification token generation + email service, Verification of email endpoints, Resend Verification Email
+
+  -Generated a secure random token.
+  1. Add token helper
+  We use crypto.randomBytes() rather than Math.random() because this token is security-sensitive.
+
+  -Creating email service from nodemailer
+  EMAIL_USER=yourEmail@gmail.com
+  EMAIL_PASSWORD=gmailappPassword
+
+  EMAIL_PASSWORD should not be your normal Gmail password.
+  Use a Google App Password.
+
+
+So the signup flow becomes
+User Signup
+    ↓
+Validate
+    ↓
+Hash Password
+    ↓
+Create User
+    ↓
+Generate random token
+    ↓
+Hash token
+    ↓
+Store hash in PostgreSQL
+    ↓
+Send original token through email
+
+
+  -Verify Email

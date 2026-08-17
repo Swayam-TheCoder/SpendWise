@@ -1,5 +1,5 @@
-import { signupSchema, loginSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout } from "../services/auth.service.js";
+import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema } from "../validators/auth.validator.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -184,6 +184,74 @@ export const logoutController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Logout failed",
+    });
+  }
+};
+
+export const verifyEmailController = async (req, res) => {
+  try {
+    const { token } = verifyEmailSchema.parse(req.body);
+
+    await verifyEmail(token);
+
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification request",
+        errors: error.issues,
+      });
+    }
+
+    if (
+      error.message === "Invalid verification token" ||
+      error.message === "Verification token has expired"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const resendVerificationController = async (req, res) => {
+  try {
+    const { email } =
+      resendVerificationSchema.parse(req.body);
+
+    await resendVerificationEmail(email);
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "If the account exists and is not verified, a verification email has been sent.",
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+        errors: error.issues,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to send verification email",
     });
   }
 };

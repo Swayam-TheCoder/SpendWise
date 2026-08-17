@@ -6,6 +6,8 @@ import {
   refreshController,
   logoutController,
   getMeController,
+  verifyEmailController,
+  resendVerificationController,
 } from "../controllers/auth.controller.js";
 
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -23,5 +25,9 @@ router.post("/refresh", authRateLimiter, refreshController);
 router.post("/logout", logoutController);
 
 router.get("/me", authenticate, getMeController);
+
+router.post("/verify-email",authRateLimiter, verifyEmailController);
+
+router.post("/resend-verification", authRateLimiter, resendVerificationController);
 
 export default router;

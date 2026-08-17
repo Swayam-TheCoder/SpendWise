@@ -39,6 +39,7 @@ export const signup = async ({ name, email, password }) => {
   });
 
   const verificationToken = generateVerificationToken();
+  //  /verify-email?token=${verificationToken}, its a verification token not the hashed token.
 
   const tokenHash = hashToken(verificationToken);
 
@@ -216,5 +217,106 @@ export const logout = async (refreshToken) => {
     where: {
       refreshTokenHash,
     },
+  });
+};
+
+
+export const verifyEmail = async (token) => {
+  if (!token) {
+    throw new Error("Verification token is required");
+  }
+
+  const tokenHash = hashToken(token);
+
+  const verificationToken =
+    await prisma.emailVerificationToken.findUnique({
+      where: {
+        tokenHash,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+  if (!verificationToken) {
+    throw new Error("Invalid verification token");
+  }
+
+  if (verificationToken.expiresAt < new Date()) {
+    await prisma.emailVerificationToken.delete({
+      where: {
+        id: verificationToken.id,
+      },
+    });
+
+    throw new Error("Verification token has expired");
+  }
+
+  if (verificationToken.user.isEmailVerified) {
+    await prisma.emailVerificationToken.delete({
+      where: {
+        id: verificationToken.id,
+      },
+    });
+
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: {
+        id: verificationToken.userId,
+      },
+      data: {
+        isEmailVerified: true,
+      },
+    }),
+
+    prisma.emailVerificationToken.delete({
+      where: {
+        id: verificationToken.id,
+      },
+    }),
+  ]);
+};
+
+export const resendVerificationEmail = async (email) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  // Dont reveal whether an email exists
+  if (!user) {
+    return;
+  }
+
+  if (user.isEmailVerified) {
+    return;
+  }
+
+  const verificationToken = generateVerificationToken();
+  const tokenHash = hashToken(verificationToken);
+
+  await prisma.emailVerificationToken.deleteMany({
+    where: {
+      userId: user.id,
+    },
+  });
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(
+        Date.now() + 15 * 60 * 1000
+      ),
+    },
+  });
+
+  await sendVerificationEmail({
+    email: user.email,
+    token: verificationToken,
   });
 };

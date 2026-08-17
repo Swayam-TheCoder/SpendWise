@@ -30,3 +30,15 @@ export const loginSchema = z.object({
     .string()
     .min(1, "Password is required"),
 });
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Verification token is required"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email address")
+    .transform((value) => value.toLowerCase()),
+});
