@@ -37,3 +37,7 @@ export const hashToken = (token) => {
     .update(token)
     .digest("hex");
 };
+
+export const generateVerificationToken = () => {
+  return crypto.randomBytes(32).toString("hex");
+};

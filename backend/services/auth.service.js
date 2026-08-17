@@ -3,9 +3,11 @@ import prisma from "../config/prisma.js";
 import {
   generateAccessToken,
   generateRefreshToken,
+  generateVerificationToken,
   hashToken,
 } from "../utils/token.js";
 import jwt from "jsonwebtoken";
+import { sendVerificationEmail } from "./email.service.js";
 
 export const signup = async ({ name, email, password }) => {
   const existingUser = await prisma.user.findUnique({
@@ -34,6 +36,25 @@ export const signup = async ({ name, email, password }) => {
       isEmailVerified: true,
       createdAt: true,
     },
+  });
+
+  const verificationToken = generateVerificationToken();
+
+  const tokenHash = hashToken(verificationToken);
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(
+        Date.now() + 15 * 60 * 1000 // 15 minutes
+      ),
+    },
+  });
+
+  await sendVerificationEmail({
+    email: user.email,
+    token: verificationToken,
   });
 
   return user;

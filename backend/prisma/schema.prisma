@@ -31,6 +31,7 @@ model User {
   updatedAt       DateTime @updatedAt
 
   sessions        Session[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
 }
@@ -55,4 +56,18 @@ model Session {
 enum AuthProvider {
   LOCAL
   GOOGLE
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+
+  userId    String
+  tokenHash String   @unique
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
