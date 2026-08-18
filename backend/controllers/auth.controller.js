@@ -1,5 +1,5 @@
-import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail } from "../services/auth.service.js";
+import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema } from "../validators/auth.validator.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -252,6 +252,35 @@ export const resendVerificationController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to send verification email",
+    });
+  }
+};
+
+export const forgotPasswordController = async (req, res) => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    await forgotPassword(email);
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "If an account exists with this email, a password reset link has been sent.",
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+        errors: error.issues,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to process password reset request",
     });
   }
 };

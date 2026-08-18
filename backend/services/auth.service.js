@@ -7,7 +7,7 @@ import {
   hashToken,
 } from "../utils/token.js";
 import jwt from "jsonwebtoken";
-import { sendVerificationEmail } from "./email.service.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service.js";
 
 export const signup = async ({ name, email, password }) => {
   const existingUser = await prisma.user.findUnique({
@@ -318,5 +318,48 @@ export const resendVerificationEmail = async (email) => {
   await sendVerificationEmail({
     email: user.email,
     token: verificationToken,
+  });
+};
+
+export const forgotPassword = async (email) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  // Don't reveal whether the email exists.
+  if (!user) {
+    return;
+  }
+
+  if (!user.password) {
+    return;
+  }
+
+  const resetToken = generateVerificationToken();
+
+  const tokenHash = hashToken(resetToken);
+
+  // Remove old reset tokens
+  await prisma.passwordResetToken.deleteMany({
+    where: {
+      userId: user.id,
+    },
+  });
+
+  await prisma.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(
+        Date.now() + 15 * 60 * 1000
+      ),
+    },
+  });
+
+  await sendPasswordResetEmail({
+    email: user.email,
+    token: resetToken,
   });
 };

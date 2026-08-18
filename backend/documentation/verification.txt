@@ -36,3 +36,95 @@ Send original token through email
 
 
   -Verify Email
+
+    Flow:
+    POST /api/auth/verify-email
+            ↓
+    Validate token
+            ↓
+    Hash token
+            ↓
+    Find token
+            ↓
+    Check expiration
+            ↓
+    Verify user
+            ↓
+    Delete token
+            ↓
+    isEmailVerified = true
+
+
+Get the actual token from the verification email.
+
+then: POST /api/auth/verify-email
+Body:
+{
+  "token": "TOKEN_FROM_EMAIL" // its a verification email not the hashToken
+}
+
+Expected:
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+
+Prisma studio should show now {isEmailVerified: true}
+
+Security behavior:
+Valid token
+    ↓
+Verify email
+    ↓
+Delete token
+    ↓
+Cannot use same token again
+
+Expired token:
+Expired token
+    ↓
+Delete token
+    ↓
+Verification fails
+
+Invalid token:
+Fake token
+    ↓
+No matching hash
+    ↓
+400 Bad Request
+
+
+    -Resend Verification Email
+    Flow:
+    POST /api/auth/resend-verification
+            ↓
+    Find user
+            ↓
+    Already verified?
+            ↓
+    Generate new token
+            ↓
+    Delete old tokens
+            ↓
+    Store new token hash
+            ↓
+    Send email
+
+
+Authentication is now
+Signup
+  ↓
+Argon2 password
+  ↓
+Email verification
+  ↓
+Login
+  ↓
+Access + Refresh tokens
+  ↓
+Protected APIs
+  ↓
+Refresh token rotation
+  ↓
+Logout
