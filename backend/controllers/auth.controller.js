@@ -1,5 +1,5 @@
-import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword } from "../services/auth.service.js";
+import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, changePasswordSchema } from "../validators/auth.validator.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -281,6 +281,55 @@ export const forgotPasswordController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to process password reset request",
+    });
+  }
+};
+
+export const changePasswordController = async (req, res) => {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+
+    await changePassword({
+      userId: req.userId,
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password data",
+        errors: error.issues,
+      });
+    }
+
+    if (error.message === "Current password is incorrect") {
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (
+      error.message ===
+      "Password authentication is not available"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to change password",
     });
   }
 };

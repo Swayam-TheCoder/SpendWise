@@ -419,3 +419,52 @@ export const resetPassword = async ({ token, password }) => {
     }),
   ]);
 };
+
+export const changePassword = async ({
+  userId,
+  currentPassword,
+  newPassword,
+}) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (!user.password) {
+    throw new Error("Password authentication is not available");
+  }
+
+  const isValid = await argon2.verify(
+    user.password,
+    currentPassword
+  );
+
+  if (!isValid) {
+    throw new Error("Current password is incorrect");
+  }
+
+  const hashedPassword = await argon2.hash(newPassword);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    }),
+
+    // Invalidate existing sessions
+    prisma.session.deleteMany({
+      where: {
+        userId,
+      },
+    }),
+  ]);
+};
