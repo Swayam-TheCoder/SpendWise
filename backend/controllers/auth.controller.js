@@ -1,5 +1,5 @@
 import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, changePasswordSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword } from "../services/auth.service.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -45,7 +45,11 @@ export const loginController = async (req, res) => {
   try {
     const data = loginSchema.parse(req.body);
 
-    const result = await login(data);
+    const result = await login({
+      ...data,
+      userAgent: req.get("user-agent"),
+      ipAddress: req.ip,
+    });
 
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
@@ -330,6 +334,26 @@ export const changePasswordController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to change password",
+    });
+  }
+};
+
+export const getSessionsController = async (req, res) => {
+  try {
+    const sessions = await getUserSessions(req.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        sessions,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch sessions",
     });
   }
 };

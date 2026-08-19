@@ -62,7 +62,7 @@ export const signup = async ({ name, email, password }) => {
 };
 
 
-export const login = async ({ email, password }) => {
+export const login = async ({ email, password, userAgent, ipAddress }) => {
   const user = await prisma.user.findUnique({
     where: {
       email,
@@ -103,6 +103,8 @@ export const login = async ({ email, password }) => {
     data: {
       userId: user.id,
       refreshTokenHash,
+      userAgent,
+      ipAddress,
       expiresAt: refreshTokenExpiresAt,
     },
   });
@@ -467,4 +469,25 @@ export const changePassword = async ({
       },
     }),
   ]);
+};
+
+export const getUserSessions = async (userId) => {
+  return prisma.session.findMany({
+    where: {
+      userId,
+      expiresAt: {
+        gt: new Date(),
+      },
+    },
+    select: {
+      id: true,
+      userAgent: true,
+      ipAddress: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 };

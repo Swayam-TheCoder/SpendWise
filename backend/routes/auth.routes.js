@@ -10,6 +10,7 @@ import {
   resendVerificationController,
   forgotPasswordController,
   changePasswordController,
+  getSessionsController,
 } from "../controllers/auth.controller.js";
 
 import { authenticate, resetPasswordController } from "../middleware/auth.middleware.js";
@@ -37,5 +38,7 @@ router.post("/forgot-password", authRateLimiter, forgotPasswordController);
 router.post("/reset-password", authRateLimiter, resetPasswordController);
 
 router.post("/change-password", authenticate, authRateLimiter, changePasswordController);
+
+router.get("/sessions", authenticate, getSessionsController);
 
 export default router;
