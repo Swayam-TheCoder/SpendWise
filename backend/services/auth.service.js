@@ -491,3 +491,16 @@ export const getUserSessions = async (userId) => {
     },
   });
 };
+
+export const revokeSession = async (userId, sessionId) => {
+  const result = await prisma.session.deleteMany({
+    where: {
+      id: sessionId,
+      userId,
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Session not found");
+  }
+};

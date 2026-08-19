@@ -1,5 +1,5 @@
 import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, changePasswordSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions } from "../services/auth.service.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions, revokeSession } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -354,6 +354,34 @@ export const getSessionsController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to fetch sessions",
+    });
+  }
+};
+
+export const revokeSessionController = async (req, res) => {
+  try {
+    await revokeSession(
+      req.userId,
+      req.params.sessionId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Session revoked successfully",
+    });
+  } catch (error) {
+    if (error.message === "Session not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to revoke session",
     });
   }
 };
