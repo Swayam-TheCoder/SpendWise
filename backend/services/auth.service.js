@@ -338,6 +338,7 @@ export const forgotPassword = async (email) => {
   }
 
   const resetToken = generateVerificationToken();
+  console.log("Reset Token:", resetToken); // Log the reset token for debugging // logs
 
   const tokenHash = hashToken(resetToken);
 
@@ -362,4 +363,59 @@ export const forgotPassword = async (email) => {
     email: user.email,
     token: resetToken,
   });
+};
+
+
+export const resetPassword = async ({ token, password }) => {
+  const tokenHash = hashToken(token);
+
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: {
+      tokenHash,
+    },
+  });
+  
+  console.log("Reset Token:", resetToken); // Log the reset token for debugging //logs
+
+  if (!resetToken) {
+    throw new Error("Invalid or expired reset token");
+  }
+
+  if (resetToken.expiresAt < new Date()) {
+    await prisma.passwordResetToken.delete({
+      where: {
+        id: resetToken.id,
+      },
+    });
+
+    throw new Error("Invalid or expired reset token");
+  }
+
+  const hashedPassword = await argon2.hash(password);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: {
+        id: resetToken.userId,
+      },
+      data: {
+        password: hashedPassword,
+        authProvider: "LOCAL",
+      },
+    }),
+
+    // Invalidate all existing login sessions
+    prisma.session.deleteMany({
+      where: {
+        userId: resetToken.userId,
+      },
+    }),
+
+    // Make reset token one-time-use
+    prisma.passwordResetToken.delete({
+      where: {
+        id: resetToken.id,
+      },
+    }),
+  ]);
 };

@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import { resetPasswordSchema } from "../validators/auth.validator.js";
+import { resetPassword } from "../services/auth.service.js";
 
 export const authenticate = (req, res, next) => {
   try {
@@ -68,6 +70,41 @@ export const getMeController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+
+export const resetPasswordController = async (req, res) => {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+
+    await resetPassword({ token, password });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    if (error.name === "ZodError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password reset request",
+        errors: error.issues,
+      });
+    }
+
+    if (error.message === "Invalid or expired reset token") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to reset password",
     });
   }
 };
