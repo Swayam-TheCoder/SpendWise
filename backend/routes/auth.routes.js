@@ -12,6 +12,7 @@ import {
   changePasswordController,
   getSessionsController,
   revokeSessionController,
+  logoutAllController,
 } from "../controllers/auth.controller.js";
 
 import { authenticate, resetPasswordController } from "../middleware/auth.middleware.js";
@@ -43,5 +44,7 @@ router.post("/change-password", authenticate, authRateLimiter, changePasswordCon
 router.get("/sessions", authenticate, getSessionsController);
 
 router.delete("/sessions/:sessionId", authenticate, revokeSessionController);
+
+router.post("/logout-all", authenticate, logoutAllController);
 
 export default router;

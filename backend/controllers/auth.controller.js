@@ -1,5 +1,5 @@
 import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, changePasswordSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions, revokeSession } from "../services/auth.service.js";
+import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions, revokeSession, logoutAllSessions } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
 
@@ -382,6 +382,30 @@ export const revokeSessionController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to revoke session",
+    });
+  }
+};
+
+export const logoutAllController = async (req, res) => {
+  try {
+    await logoutAllSessions(req.userId);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out from all devices",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to logout from all devices",
     });
   }
 };

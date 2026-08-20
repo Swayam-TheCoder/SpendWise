@@ -504,3 +504,11 @@ export const revokeSession = async (userId, sessionId) => {
     throw new Error("Session not found");
   }
 };
+
+export const logoutAllSessions = async (userId) => {
+  await prisma.session.deleteMany({
+    where: {
+      userId,
+    },
+  });
+};

@@ -1,0 +1,105 @@
+What is Session Management?
+Session management means keeping track of where a user is logged in and allowing the server to control those login sessions.
+
+In SpendWise, we store sessions in PostgreSQL.
+User
+ ├── Laptop session
+ ├── Phone session
+ └── Browser session
+
+The field for our session model:
+id → Unique session ID
+userId → Which user owns this session
+refreshTokenHash → Hashed refresh token associated with the session
+userAgent → Browser/device information
+ipAddress → IP from which the session was created
+expiresAt → When the session becomes invalid
+createdAt → When the session was created
+
+
+Why do we need a Session table?
+
+Suppose the user logs in from:
+Laptop → Session A
+Phone  → Session B
+Chrome → Session C
+
+We need to know:
+Who owns each session?
+When was it created?
+When does it expire?
+What device created it?
+Can the user revoke it?
+That's why we store sessions separately.
+
+
+Session Lifecycle:
+LOGIN
+  ↓
+Create Session
+  ↓
+Store refreshTokenHash
+  ↓
+User stays logged in
+  ↓
+Refresh token rotation
+  ↓
+Session updated/replaced
+  ↓
+Logout / Revoke / Expire
+  ↓
+Session deleted
+
+
+APIs:
+1. Get sessions: Returns the user's active sessions.
+GET /api/auth/sessions
+authorization: access-token
+
+2. Revoke one session: A user must only be able to revoke their own session.
+DELETE /api/auth/sessions/:sessionId
+authorization: access-token
+
+3. Logout all devices: All refresh sessions are removed.
+POST /api/auth/logout-all
+authorization: access-token
+
+
+Logout vs Logout All:
+Normal logout
+Current session
+      ↓
+Delete one session
+Logout all
+User
+ ↓
+Delete ALL sessions belonging to user
+
+
+Architecture:
+                  USER
+                   │
+                  LOGIN
+                   │
+                   ▼
+             Create Session
+                   │
+                   ▼
+             PostgreSQL
+                   │
+        ┌──────────┼──────────┐
+        ▼          ▼          ▼
+     Laptop      Phone     Browser
+        │          │          │
+        └──────────┼──────────┘
+                   │
+            Refresh Token
+                   │
+          ┌────────┴────────┐
+          ▼                 ▼
+       Refresh           Revoke
+       Session            Session
+          │                 │
+          └────────┬────────┘
+                   ▼
+              Delete Session
