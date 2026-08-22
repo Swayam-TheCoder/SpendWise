@@ -103,3 +103,6 @@ Architecture:
           └────────┬────────┘
                    ▼
               Delete Session
+
+
+Session management gives SpendWise control over every login of a user-view it, expire it, revoke one device or log out everywhere.

@@ -143,28 +143,55 @@ export const refreshController = async (req, res) => {
 
     const result = await refreshSession(refreshToken);
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(
+      "refreshToken",
+      result.refreshToken,
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      }
+    );
 
     return res.status(200).json({
       success: true,
-      message: "Token refreshed",
-      data: {
-        accessToken: result.accessToken,
-      },
+      message: "Token refreshed successfully",
     });
   } catch (error) {
-    return res.status(401).json({
+    if (
+      error.message === "Refresh token reuse detected"
+    ) {
+      res.clearCookie("refreshToken");
+
+      return res.status(401).json({
+        success: false,
+        message:
+          "Refresh token reuse detected. Please login again.",
+      });
+    }
+
+    if (
+      error.message === "Invalid refresh token" ||
+      error.message === "Session not found" ||
+      error.message === "Session expired"
+    ) {
+      res.clearCookie("refreshToken");
+
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Refresh error:", error);
+
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Unable to refresh session",
     });
   }
 };
-
 
 export const logoutController = async (req, res) => {
   try {

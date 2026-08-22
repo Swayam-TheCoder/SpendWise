@@ -92,6 +92,7 @@ export const login = async ({ email, password, userAgent, ipAddress }) => {
 
   const accessToken = generateAccessToken(user.id);
   const refreshToken = generateRefreshToken(user.id);
+  console.log("Generated Refresh Token:", refreshToken); // Log the generated refresh token for debugging
 
   const refreshTokenHash = hashToken(refreshToken);
 
@@ -135,74 +136,78 @@ export const login = async ({ email, password, userAgent, ipAddress }) => {
 
 export const refreshSession = async (refreshToken) => {
   if (!refreshToken) {
-    throw new Error("Refresh token required");
+    throw new Error("Refresh token is required");
   }
 
-  let decoded;
+  let payload;
 
   try {
-    decoded = jwt.verify(
+    payload = jwt.verify(
       refreshToken,
-      process.env.JWT_REFRESH_SECRET
+      process.env.REFRESH_TOKEN_SECRET
     );
-  } catch {
-    throw new Error("Invalid or expired refresh token");
+  } catch (error) {
+    throw new Error("Invalid refresh token");
   }
 
-  const oldTokenHash = hashToken(refreshToken);
-
-  const oldSession = await prisma.session.findFirst({
+  const session = await prisma.session.findUnique({
     where: {
-      userId: decoded.userId,
-      refreshTokenHash: oldTokenHash,
-      expiresAt: {
-        gt: new Date(),
+      id: payload.sessionId,
+    },
+  });
+
+  if (!session) {
+    throw new Error("Session not found");
+  }
+
+  // Check session expiration
+  if (session.expiresAt < new Date()) {
+    await prisma.session.delete({
+      where: {
+        id: session.id,
       },
-    },
-  });
+    });
 
-  if (!oldSession) {
-    throw new Error("Invalid refresh session");
+    throw new Error("Session expired");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: decoded.userId,
-    },
-  });
-
-  if (!user || !user.isActive) {
-    throw new Error("User not available");
-  }
-
-  const newAccessToken = generateAccessToken(user.id);
-  const newRefreshToken = generateRefreshToken(user.id);
-
-  const newRefreshTokenHash = hashToken(newRefreshToken);
-
-  const newExpiresAt = new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
+  // Compare incoming token with stored hash
+  const isValid = await argon2.verify(
+    session.refreshTokenHash,
+    refreshToken
   );
 
-  // Rotate the session
-  await prisma.$transaction([
-    prisma.session.delete({
+  if (!isValid) {
+    // 🚨 Refresh token reuse detected
+    await prisma.session.delete({
       where: {
-        id: oldSession.id,
+        id: session.id,
       },
-    }),
+    });
 
-    prisma.session.create({
-      data: {
-        userId: user.id,
-        refreshTokenHash: newRefreshTokenHash,
-        expiresAt: newExpiresAt,
-      },
-    }),
-  ]);
+    throw new Error("Refresh token reuse detected");
+  }
+
+  // Generate new refresh token
+  const newRefreshToken = generateRefreshToken({
+    userId: session.userId,
+    sessionId: session.id,
+  });
+
+  const newRefreshTokenHash =
+    await argon2.hash(newRefreshToken);
+
+  // Rotate token
+  await prisma.session.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      refreshTokenHash: newRefreshTokenHash,
+    },
+  });
 
   return {
-    accessToken: newAccessToken,
     refreshToken: newRefreshToken,
   };
 };
