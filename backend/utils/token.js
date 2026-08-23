@@ -14,19 +14,20 @@ export const generateAccessToken = (userId) => {
     },
     process.env.JWT_ACCESS_SECRET,
     {
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
     }
   );
 };
 
-export const generateRefreshToken = (userId) => {
+export const generateRefreshToken = ({userId,sessionId}) => {
   return jwt.sign(
     {
       userId,
+      sessionId,
     },
     process.env.JWT_REFRESH_SECRET,
     {
-      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
     }
   );
 };

@@ -61,10 +61,10 @@ export const loginController = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      data: {
-        user: result.user,
-        accessToken: result.accessToken,
-      },
+
+      user: result.user,
+
+      accessToken: result.accessToken,
     });
   } catch (error) {
     if (error.name === "ZodError") {
@@ -139,29 +139,31 @@ export const getMeController = async (req, res) => {
 
 export const refreshController = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
 
     const result = await refreshSession(refreshToken);
 
-    res.cookie(
-      "refreshToken",
-      result.refreshToken,
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      }
-    );
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     return res.status(200).json({
       success: true,
       message: "Token refreshed successfully",
+      accessToken: result.accessToken,
     });
   } catch (error) {
-    if (
-      error.message === "Refresh token reuse detected"
-    ) {
+    if (error.message === "Refresh token reuse detected") {
       res.clearCookie("refreshToken");
 
       return res.status(401).json({

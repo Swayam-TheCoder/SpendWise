@@ -7,7 +7,10 @@ import {
   hashToken,
 } from "../utils/token.js";
 import jwt from "jsonwebtoken";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service.js";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "./email.service.js";
 
 export const signup = async ({ name, email, password }) => {
   const existingUser = await prisma.user.findUnique({
@@ -48,7 +51,7 @@ export const signup = async ({ name, email, password }) => {
       userId: user.id,
       tokenHash,
       expiresAt: new Date(
-        Date.now() + 15 * 60 * 1000 // 15 minutes
+        Date.now() + 15 * 60 * 1000, // 15 minutes
       ),
     },
   });
@@ -60,7 +63,6 @@ export const signup = async ({ name, email, password }) => {
 
   return user;
 };
-
 
 export const login = async ({ email, password, userAgent, ipAddress }) => {
   const user = await prisma.user.findUnique({
@@ -81,43 +83,44 @@ export const login = async ({ email, password, userAgent, ipAddress }) => {
     throw new Error("Please use your social login provider");
   }
 
-  const isPasswordValid = await argon2.verify(
-    user.password,
-    password
-  );
+  const isPasswordValid = await argon2.verify(user.password, password);
 
   if (!isPasswordValid) {
     throw new Error("Invalid email or password");
   }
 
   const accessToken = generateAccessToken(user.id);
-  const refreshToken = generateRefreshToken(user.id);
-  console.log("Generated Refresh Token:", refreshToken); // Log the generated refresh token for debugging
 
-  const refreshTokenHash = hashToken(refreshToken);
-
-  const refreshTokenExpiresAt = new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
-  );
-
+  // Create session first
   const session = await prisma.session.create({
     data: {
       userId: user.id,
-      refreshTokenHash,
+      refreshTokenHash: "temporary",
       userAgent,
       ipAddress,
-      expiresAt: refreshTokenExpiresAt,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
 
-  await prisma.user.update({
+  // Now session.id exists
+  const refreshToken = generateRefreshToken({
+    userId: user.id,
+    sessionId: session.id,
+  });
+
+  const refreshTokenHash = await argon2.hash(refreshToken);
+
+  // Store hash of refresh token
+  await prisma.session.update({
     where: {
-      id: user.id,
+      id: session.id,
     },
     data: {
-      lastLoginAt: new Date(),
+      refreshTokenHash,
     },
   });
+
+  console.log("Generated Refresh Token:", refreshToken);
 
   return {
     user: {
@@ -133,7 +136,6 @@ export const login = async ({ email, password, userAgent, ipAddress }) => {
   };
 };
 
-
 export const refreshSession = async (refreshToken) => {
   if (!refreshToken) {
     throw new Error("Refresh token is required");
@@ -142,10 +144,7 @@ export const refreshSession = async (refreshToken) => {
   let payload;
 
   try {
-    payload = jwt.verify(
-      refreshToken,
-      process.env.REFRESH_TOKEN_SECRET
-    );
+    payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
   } catch (error) {
     throw new Error("Invalid refresh token");
   }
@@ -172,10 +171,7 @@ export const refreshSession = async (refreshToken) => {
   }
 
   // Compare incoming token with stored hash
-  const isValid = await argon2.verify(
-    session.refreshTokenHash,
-    refreshToken
-  );
+  const isValid = await argon2.verify(session.refreshTokenHash, refreshToken);
 
   if (!isValid) {
     // 🚨 Refresh token reuse detected
@@ -194,8 +190,7 @@ export const refreshSession = async (refreshToken) => {
     sessionId: session.id,
   });
 
-  const newRefreshTokenHash =
-    await argon2.hash(newRefreshToken);
+  const newRefreshTokenHash = await argon2.hash(newRefreshToken);
 
   // Rotate token
   await prisma.session.update({
@@ -212,7 +207,6 @@ export const refreshSession = async (refreshToken) => {
   };
 };
 
-
 export const logout = async (refreshToken) => {
   if (!refreshToken) {
     return;
@@ -227,7 +221,6 @@ export const logout = async (refreshToken) => {
   });
 };
 
-
 export const verifyEmail = async (token) => {
   if (!token) {
     throw new Error("Verification token is required");
@@ -235,15 +228,14 @@ export const verifyEmail = async (token) => {
 
   const tokenHash = hashToken(token);
 
-  const verificationToken =
-    await prisma.emailVerificationToken.findUnique({
-      where: {
-        tokenHash,
-      },
-      include: {
-        user: true,
-      },
-    });
+  const verificationToken = await prisma.emailVerificationToken.findUnique({
+    where: {
+      tokenHash,
+    },
+    include: {
+      user: true,
+    },
+  });
 
   if (!verificationToken) {
     throw new Error("Invalid verification token");
@@ -316,9 +308,7 @@ export const resendVerificationEmail = async (email) => {
     data: {
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(
-        Date.now() + 15 * 60 * 1000
-      ),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
 
@@ -360,9 +350,7 @@ export const forgotPassword = async (email) => {
     data: {
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(
-        Date.now() + 15 * 60 * 1000
-      ),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
 
@@ -372,7 +360,6 @@ export const forgotPassword = async (email) => {
   });
 };
 
-
 export const resetPassword = async ({ token, password }) => {
   const tokenHash = hashToken(token);
 
@@ -381,7 +368,7 @@ export const resetPassword = async ({ token, password }) => {
       tokenHash,
     },
   });
-  
+
   console.log("Reset Token:", resetToken); // Log the reset token for debugging //logs
 
   if (!resetToken) {
@@ -446,10 +433,7 @@ export const changePassword = async ({
     throw new Error("Password authentication is not available");
   }
 
-  const isValid = await argon2.verify(
-    user.password,
-    currentPassword
-  );
+  const isValid = await argon2.verify(user.password, currentPassword);
 
   if (!isValid) {
     throw new Error("Current password is incorrect");
