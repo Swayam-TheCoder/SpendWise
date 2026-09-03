@@ -17,9 +17,7 @@ export const authApi = {
     return response.data;
   },
 
-  async signup(
-    data: SignupRequest
-  ): Promise<SignupResponse> {
+  async signup(data: SignupRequest): Promise<SignupResponse> {
     const response = await apiClient.post<SignupResponse>(
       "/auth/signup",
       data
@@ -29,26 +27,17 @@ export const authApi = {
   },
 
   async refresh() {
-    const response = await apiClient.post(
-      "/auth/refresh"
-    );
-
+    const response = await apiClient.post("/auth/refresh");
     return response.data;
   },
 
   async logout() {
-    const response = await apiClient.post(
-      "/auth/logout"
-    );
-
+    const response = await apiClient.post("/auth/logout");
     return response.data;
   },
 
   async getSessions() {
-    const response = await apiClient.get(
-      "/auth/sessions"
-    );
-
+    const response = await apiClient.get("/auth/sessions");
     return response.data;
   },
 
@@ -61,10 +50,33 @@ export const authApi = {
   },
 
   async logoutAll() {
+    const response = await apiClient.post("/auth/logout-all");
+    return response.data;
+  },
+
+  async forgotPassword(email: string) {
     const response = await apiClient.post(
-      "/auth/logout-all"
+      "/auth/forgot-password",
+      { email }
     );
 
     return response.data;
+  },
+
+  async resetPassword(token: string, password: string) {
+    const response = await apiClient.post(
+      "/auth/reset-password",
+      {
+        token,
+        password,
+      }
+    );
+
+    return response.data;
+  },
+
+  googleLogin() {
+    window.location.href =
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   },
 };

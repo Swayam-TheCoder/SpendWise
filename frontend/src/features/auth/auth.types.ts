@@ -6,6 +6,9 @@ export interface User {
   email: string;
   authProvider: AuthProvider;
   isEmailVerified: boolean;
+  isActive?: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
 }
 
 export interface LoginRequest {
@@ -29,5 +32,7 @@ export interface AuthResponse {
 export interface SignupResponse {
   success: boolean;
   message: string;
-  user?: User;
+  data: {
+    user: User;
+  };
 }

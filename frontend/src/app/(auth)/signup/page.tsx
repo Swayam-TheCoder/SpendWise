@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Loader2,
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/features/auth/auth.store";
 
 import AuthShell from "@/components/auth/AuthShell";
+import { authApi } from "@/features/auth/auth.api";
 
 export default function SignupPage() {
+  const router = useRouter();
+
+  const signup = useAuthStore((state) => state.signup);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,26 +24,23 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSignup(
-    e: React.FormEvent<HTMLFormElement>
-  ) {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      console.log({
-        name,
-        email,
-        password,
-      });
+      const response = await signup(name, email, password);
 
-      // Backend integration comes next.
+      console.log("Signup successful:", response);
 
+      router.push("/login?registered=true");
     } catch (error) {
       setError(
-        "Unable to create your account. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Unable to create your account.",
       );
     } finally {
       setLoading(false);
@@ -63,11 +63,7 @@ export default function SignupPage() {
         </>
       }
     >
-      <form
-        onSubmit={handleSignup}
-        className="space-y-4"
-      >
-
+      <form onSubmit={handleSignup} className="space-y-4">
         {error && (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300">
             {error}
@@ -118,18 +114,14 @@ export default function SignupPage() {
               required
               minLength={8}
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
               className="h-12 w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 pr-11 text-sm outline-none placeholder:text-white/20 focus:border-violet-400/50"
             />
 
             <button
               type="button"
-              onClick={() =>
-                setShowPassword(!showPassword)
-              }
+              onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white"
             >
               {showPassword ? (
@@ -186,6 +178,7 @@ export default function SignupPage() {
 
         <button
           type="button"
+          onClick={authApi.googleLogin}
           className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] text-sm font-medium text-white/70 transition hover:bg-white/[0.05] hover:text-white"
         >
           <span className="text-base font-bold">G</span>
@@ -193,10 +186,9 @@ export default function SignupPage() {
         </button>
 
         <p className="pt-2 text-center text-[10px] leading-5 text-white/20">
-          By creating an account, you agree to our Terms of
-          Service and Privacy Policy.
+          By creating an account, you agree to our Terms of Service and Privacy
+          Policy.
         </p>
-
       </form>
     </AuthShell>
   );

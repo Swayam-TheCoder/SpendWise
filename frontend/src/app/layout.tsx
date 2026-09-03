@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SpendWise",
-  description: "Smart personal finance management",
+  description: "Your personal Finance OS",
 };
 
 export default function RootLayout({
@@ -13,7 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

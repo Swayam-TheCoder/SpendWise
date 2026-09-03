@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Loader2,
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/features/auth/auth.store";
 
 import AuthShell from "@/components/auth/AuthShell";
+import { authApi } from "@/features/auth/auth.api";
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const login = useAuthStore((state) => state.login);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -19,27 +22,21 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleLogin(
-    e: React.FormEvent<HTMLFormElement>
-  ) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      // Backend integration will be connected here.
-      console.log({
-        email,
-        password,
-      });
-
-      // TEMP:
-      // After API integration:
-      // router.push("/dashboard");
-
+      await login(email, password);
+      router.push("/dashboard");
     } catch (error) {
-      setError("Unable to sign in. Please try again.");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -61,11 +58,7 @@ export default function LoginPage() {
         </>
       }
     >
-      <form
-        onSubmit={handleLogin}
-        className="space-y-5"
-      >
-
+      <form onSubmit={handleLogin} className="space-y-5">
         {error && (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300">
             {error}
@@ -115,9 +108,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() =>
-                setShowPassword(!showPassword)
-              }
+              onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white"
             >
               {showPassword ? (
@@ -159,12 +150,12 @@ export default function LoginPage() {
         {/* Google */}
         <button
           type="button"
+          onClick={authApi.googleLogin}
           className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] text-sm font-medium text-white/70 transition hover:bg-white/[0.05] hover:text-white"
         >
           <span className="text-base font-bold">G</span>
           Continue with Google
         </button>
-
       </form>
     </AuthShell>
   );
