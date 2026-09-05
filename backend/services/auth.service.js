@@ -202,7 +202,27 @@ export const refreshSession = async (refreshToken) => {
     },
   });
 
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      authProvider: true,
+      isEmailVerified: true,
+      isActive: true,
+      lastLoginAt: true,
+      createdAt: true,
+    },
+  });
+
+  const accessToken = generateAccessToken(session.userId);
+
   return {
+    user,
+    accessToken,
     refreshToken: newRefreshToken,
   };
 };

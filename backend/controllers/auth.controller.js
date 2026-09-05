@@ -3,6 +3,14 @@ import { signup, login, refreshSession, logout, verifyEmail, resendVerificationE
 import prisma from "../config/prisma.js";
 
 
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../utils/token.js";
+
+import argon2 from "argon2";
+
+
 export const signupController = async (req, res) => {
   try {
     const data = signupSchema.parse(req.body);
@@ -436,5 +444,71 @@ export const logoutAllController = async (req, res) => {
       success: false,
       message: "Unable to logout from all devices",
     });
+  }
+};
+
+
+export const googleCallbackController = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?error=google_auth_failed`
+      );
+    }
+
+    const accessToken = generateAccessToken(user.id);
+
+    // Create session
+    const session = await prisma.session.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash: "temporary",
+        userAgent: req.get("user-agent"),
+        ipAddress: req.ip,
+        expiresAt: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ),
+      },
+    });
+
+    // Generate refresh token
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      sessionId: session.id,
+    });
+
+    const refreshTokenHash = await argon2.hash(
+      refreshToken
+    );
+
+    await prisma.session.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        refreshTokenHash,
+      },
+    });
+
+    // Store refresh token in HttpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Don't put access token in URL
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/auth/google/success`
+    );
+  } catch (error) {
+    console.error("Google OAuth callback error:", error);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?error=google_auth_failed`
+    );
   }
 };

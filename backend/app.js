@@ -2,11 +2,13 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import cors from "cors";
+import passport from "./config/passport.js";
 const app = express();
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 app.use(cookieParser());
 app.use(
   cors({
