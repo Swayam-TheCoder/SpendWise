@@ -144,7 +144,7 @@ export const refreshSession = async (refreshToken) => {
   let payload;
 
   try {
-    payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
   } catch (error) {
     throw new Error("Invalid refresh token");
   }

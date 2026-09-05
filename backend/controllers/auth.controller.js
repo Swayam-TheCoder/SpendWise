@@ -1,15 +1,29 @@
-import { signupSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, changePasswordSchema } from "../validators/auth.validator.js";
-import { signup, login, refreshSession, logout, verifyEmail, resendVerificationEmail, forgotPassword, changePassword, getUserSessions, revokeSession, logoutAllSessions } from "../services/auth.service.js";
+import {
+  signupSchema,
+  loginSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
+  forgotPasswordSchema,
+  changePasswordSchema,
+} from "../validators/auth.validator.js";
+import {
+  signup,
+  login,
+  refreshSession,
+  logout,
+  verifyEmail,
+  resendVerificationEmail,
+  forgotPassword,
+  changePassword,
+  getUserSessions,
+  revokeSession,
+  logoutAllSessions,
+} from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
-
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "../utils/token.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 import argon2 from "argon2";
-
 
 export const signupController = async (req, res) => {
   try {
@@ -144,7 +158,6 @@ export const getMeController = async (req, res) => {
   }
 };
 
-
 export const refreshController = async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -168,6 +181,7 @@ export const refreshController = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Token refreshed successfully",
+      user: result.user,
       accessToken: result.accessToken,
     });
   } catch (error) {
@@ -176,8 +190,7 @@ export const refreshController = async (req, res) => {
 
       return res.status(401).json({
         success: false,
-        message:
-          "Refresh token reuse detected. Please login again.",
+        message: "Refresh token reuse detected. Please login again.",
       });
     }
 
@@ -269,8 +282,7 @@ export const verifyEmailController = async (req, res) => {
 
 export const resendVerificationController = async (req, res) => {
   try {
-    const { email } =
-      resendVerificationSchema.parse(req.body);
+    const { email } = resendVerificationSchema.parse(req.body);
 
     await resendVerificationEmail(email);
 
@@ -356,10 +368,7 @@ export const changePasswordController = async (req, res) => {
       });
     }
 
-    if (
-      error.message ===
-      "Password authentication is not available"
-    ) {
+    if (error.message === "Password authentication is not available") {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -397,10 +406,7 @@ export const getSessionsController = async (req, res) => {
 
 export const revokeSessionController = async (req, res) => {
   try {
-    await revokeSession(
-      req.userId,
-      req.params.sessionId
-    );
+    await revokeSession(req.userId, req.params.sessionId);
 
     return res.status(200).json({
       success: true,
@@ -447,14 +453,13 @@ export const logoutAllController = async (req, res) => {
   }
 };
 
-
 export const googleCallbackController = async (req, res) => {
   try {
     const user = req.user;
 
     if (!user) {
       return res.redirect(
-        `${process.env.FRONTEND_URL}/login?error=google_auth_failed`
+        `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
       );
     }
 
@@ -467,9 +472,7 @@ export const googleCallbackController = async (req, res) => {
         refreshTokenHash: "temporary",
         userAgent: req.get("user-agent"),
         ipAddress: req.ip,
-        expiresAt: new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
-        ),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
 
@@ -479,9 +482,7 @@ export const googleCallbackController = async (req, res) => {
       sessionId: session.id,
     });
 
-    const refreshTokenHash = await argon2.hash(
-      refreshToken
-    );
+    const refreshTokenHash = await argon2.hash(refreshToken);
 
     await prisma.session.update({
       where: {
@@ -501,14 +502,12 @@ export const googleCallbackController = async (req, res) => {
     });
 
     // Don't put access token in URL
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/auth/google/success`
-    );
+    return res.redirect(`${process.env.FRONTEND_URL}/auth/google/success`);
   } catch (error) {
     console.error("Google OAuth callback error:", error);
 
     return res.redirect(
-      `${process.env.FRONTEND_URL}/login?error=google_auth_failed`
+      `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
     );
   }
 };
