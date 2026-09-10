@@ -14,6 +14,7 @@ import {
   revokeSessionController,
   logoutAllController,
   googleCallbackController,
+  deleteAccountController,
 } from "../controllers/auth.controller.js";
 
 import {
@@ -78,5 +79,7 @@ router.get(
   }),
   googleCallbackController,
 );
+
+router.delete("/account", authenticate, deleteAccountController);
 
 export default router;

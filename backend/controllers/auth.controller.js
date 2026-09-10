@@ -511,3 +511,37 @@ export const googleCallbackController = async (req, res) => {
     );
   }
 };
+
+export const deleteAccountController = async (req, res) => {
+  try {
+    await prisma.session.deleteMany({
+      where: {
+        userId: req.userId,
+      },
+    });
+
+    await prisma.user.delete({
+      where: {
+        id: req.userId,
+      },
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete account error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to delete account",
+    });
+  }
+};

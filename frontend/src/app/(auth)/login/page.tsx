@@ -31,11 +31,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push("/dashboard");
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to sign in. Please try again.",
+    } catch (error: any) {
+      setError(error?.response?.data?.message || "Unable to sign in. Please try again.",
       );
     } finally {
       setLoading(false);

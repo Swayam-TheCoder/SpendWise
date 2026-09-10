@@ -9,19 +9,13 @@ import type {
 
 export const authApi = {
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>(
-      "/auth/login",
-      data
-    );
+    const response = await apiClient.post<AuthResponse>("/auth/login", data);
 
     return response.data;
   },
 
   async signup(data: SignupRequest): Promise<SignupResponse> {
-    const response = await apiClient.post<SignupResponse>(
-      "/auth/signup",
-      data
-    );
+    const response = await apiClient.post<SignupResponse>("/auth/signup", data);
 
     return response.data;
   },
@@ -42,9 +36,7 @@ export const authApi = {
   },
 
   async revokeSession(sessionId: string) {
-    const response = await apiClient.delete(
-      `/auth/sessions/${sessionId}`
-    );
+    const response = await apiClient.delete(`/auth/sessions/${sessionId}`);
 
     return response.data;
   },
@@ -55,28 +47,27 @@ export const authApi = {
   },
 
   async forgotPassword(email: string) {
-    const response = await apiClient.post(
-      "/auth/forgot-password",
-      { email }
-    );
+    const response = await apiClient.post("/auth/forgot-password", { email });
 
     return response.data;
   },
 
   async resetPassword(token: string, password: string) {
-    const response = await apiClient.post(
-      "/auth/reset-password",
-      {
-        token,
-        password,
-      }
-    );
+    const response = await apiClient.post("/auth/reset-password", {
+      token,
+      password,
+    });
 
     return response.data;
   },
 
   googleLogin() {
-    window.location.href =
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  },
+
+  async deleteAccount() {
+    const response = await apiClient.delete("/auth/account");
+
+    return response.data;
   },
 };
