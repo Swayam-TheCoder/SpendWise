@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
+
+import AuthProvider from "@/providers/AuthProvider";
 
 export const metadata: Metadata = {
   title: "SpendWise",
-  description: "Your personal Finance OS",
+  description: "Smart personal finance management",
 };
 
 export default function RootLayout({

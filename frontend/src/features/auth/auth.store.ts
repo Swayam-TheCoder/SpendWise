@@ -21,6 +21,7 @@ interface AuthState {
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
   clearAuth: () => void;
+  setAuth: (accessToken: string, user?: User | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -144,6 +145,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  setAuth: (accessToken, user = null) => {
+    set({
+      accessToken,
+      user,
+      isAuthenticated: true,
+    });
+  },
+
   // =========================
   // CLEAR LOCAL AUTH STATE
   // =========================
@@ -155,4 +164,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: false,
     });
   },
+
+  
 }));

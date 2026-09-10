@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthStore } from "@/features/auth/auth.store";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -130,6 +131,13 @@ const accountItems = [
 ];
 
 export default function DashboardPage() {
+
+  const user = useAuthStore((state) => state.user);
+
+  const firstName = user?.name?.split(" ")[0] || "there";
+
+  const initial = user?.name?.charAt(0).toUpperCase() || "U";
+
   return (
     <div className="min-h-screen bg-[#070707] text-white">
       <div className="flex min-h-screen">
@@ -179,7 +187,7 @@ export default function DashboardPage() {
 
                   <div>
                     <p className="text-xs font-medium">
-                      Swayam
+                      {firstName}
                     </p>
 
                     <p className="text-[10px] text-white/30">
@@ -306,16 +314,16 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 rounded-xl px-2 py-2">
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-pink-500 text-xs font-bold">
-                  S
+                  {initial}
                 </div>
 
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium">
-                    Swayam
+                    {firstName}
                   </p>
 
                   <p className="truncate text-[10px] text-white/30">
-                    swayam@example.com
+                    {user?.email}
                   </p>
                 </div>
 
@@ -388,7 +396,7 @@ export default function DashboardPage() {
                 </div>
 
                 <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
-                  Good evening, Swayam.
+                  Good evening, {firstName}.
                 </h1>
 
                 <p className="mt-2 text-sm text-white/35">

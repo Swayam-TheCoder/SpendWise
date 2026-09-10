@@ -2,133 +2,200 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
+  Eye,
+  EyeOff,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 
+import AuthShell from "@/components/auth/AuthShell";
+import { authApi } from "@/features/auth/auth.api";
+
 export default function ResetPasswordPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const token = searchParams.get("token");
+
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>,
+  ) {
+    e.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    if (!token) {
+      setError("Invalid or missing reset token.");
+      return;
+    }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Password reset API integration comes next.
-      console.log({
+      const response = await authApi.resetPassword(
+        token,
         password,
-        confirmPassword,
-      });
+      );
+
+      setSuccess(
+        response?.message ||
+          "Password reset successfully.",
+      );
+
+      setTimeout(() => {
+        router.replace("/login");
+      }, 1500);
+    } catch (error: any) {
+      setError(
+        error?.response?.data?.message ||
+          "Unable to reset password. The link may have expired.",
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Create a new password
-        </h1>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Choose a strong password for your SpendWise account.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border bg-background p-6 shadow-sm sm:p-8">
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
-          <div>
-            <label
-              htmlFor="password"
-              className="text-sm font-medium"
-            >
-              New password
-            </label>
-
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
-              placeholder="At least 8 characters"
-              className="mt-2 h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="text-sm font-medium"
-            >
-              Confirm password
-            </label>
-
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) =>
-                setConfirmPassword(event.target.value)
-              }
-              placeholder="Repeat your password"
-              className="mt-2 h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              <>
-                Reset password
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+    <AuthShell
+      title="Create a new password."
+      description="Choose a strong password to secure your SpendWise account."
+      footer={
+        <>
           Remember your password?{" "}
           <Link
             href="/login"
-            className="font-medium text-foreground hover:underline"
+            className="font-medium text-white hover:text-violet-300"
           >
             Sign in
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="flex gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 text-xs text-emerald-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <div>
+          <label className="mb-2 block text-xs font-medium text-white/60">
+            New password
+          </label>
+
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="h-12 w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 pr-11 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-violet-400/50 focus:bg-white/[0.04]"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowPassword(!showPassword)
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-medium text-white/60">
+            Confirm password
+          </label>
+
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(e.target.value)
+              }
+              placeholder="Repeat your password"
+              className="h-12 w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 pr-11 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-violet-400/50 focus:bg-white/[0.04]"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(
+                  !showConfirmPassword,
+                )
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Resetting password...
+            </>
+          ) : (
+            <>
+              Reset password
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+            </>
+          )}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

@@ -36,12 +36,11 @@ export default function SignupPage() {
       console.log("Signup successful:", response);
 
       router.push("/login?registered=true");
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to create your account.",
-      );
+    } catch (error: any) {
+  setError(
+    error?.response?.data?.message ||
+      "Unable to create your account.",
+  );
     } finally {
       setLoading(false);
     }

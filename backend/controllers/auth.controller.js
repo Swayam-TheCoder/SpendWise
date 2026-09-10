@@ -50,7 +50,7 @@ export const signupController = async (req, res) => {
     if (error.message === "Email is already registered") {
       return res.status(409).json({
         success: false,
-        message: error.message,
+        message: "Email is already registered",
       });
     }
 

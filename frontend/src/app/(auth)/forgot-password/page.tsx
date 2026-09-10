@@ -2,103 +2,105 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Loader2,
-  Mail,
-} from "lucide-react";
+import { ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import AuthShell from "@/components/auth/AuthShell";
+import { authApi } from "@/features/auth/auth.api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>,
+  ) {
+    e.preventDefault();
 
+    setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      // Password reset API integration comes next.
-      console.log({ email });
+      const response = await authApi.forgotPassword(email);
+
+      setSuccess(
+        response?.message ||
+          "If an account exists with this email, a reset link has been sent.",
+      );
+    } catch (error: any) {
+      setError(
+        error?.response?.data?.message ||
+          "Unable to send reset link. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="w-full max-w-md">
-      <Link
-        href="/login"
-        className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to login
-      </Link>
-
-      <div className="rounded-2xl border bg-background p-6 shadow-sm sm:p-8">
-        <div className="mb-7">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-            <Mail className="h-5 w-5" />
+    <AuthShell
+      title="Reset your password."
+      description="Enter your email and we'll send you a secure password reset link."
+      footer={
+        <>
+          Remember your password?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-white hover:text-violet-300"
+          >
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-xs text-rose-300">
+            {error}
           </div>
+        )}
 
-          <h1 className="text-2xl font-bold tracking-tight">
-            Forgot your password?
-          </h1>
+        {success && (
+          <div className="flex gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 text-xs text-emerald-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
 
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Enter your email address and we'll send you a
-            password reset link.
-          </p>
+        <div>
+          <label className="mb-2 block text-xs font-medium text-white/60">
+            Email
+          </label>
+
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="h-12 w-full rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-sm text-white outline-none placeholder:text-white/20 transition focus:border-violet-400/50 focus:bg-white/[0.04]"
+          />
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
+        <button
+          type="submit"
+          disabled={loading}
+          className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <div>
-            <label
-              htmlFor="email"
-              className="text-sm font-medium"
-            >
-              Email
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              placeholder="you@example.com"
-              className="mt-2 h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                Send reset link
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Sending reset link...
+            </>
+          ) : (
+            <>
+              Send reset link
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+            </>
+          )}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
