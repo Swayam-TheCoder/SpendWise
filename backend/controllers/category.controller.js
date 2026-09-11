@@ -13,9 +13,7 @@ import {
 
 export const createCategoryController = async (req, res) => {
   try {
-    const validation = createCategorySchema.safeParse(
-      req.body,
-    );
+    const validation = createCategorySchema.safeParse(req.body);
 
     if (!validation.success) {
       return res.status(400).json({
@@ -76,10 +74,7 @@ export const getCategoriesController = async (req, res) => {
 
 export const getCategoryController = async (req, res) => {
   try {
-    const category = await getCategoryById(
-      req.userId,
-      req.params.id,
-    );
+    const category = await getCategoryById(req.userId, req.params.id);
 
     if (!category) {
       return res.status(404).json({
@@ -106,9 +101,7 @@ export const getCategoryController = async (req, res) => {
 
 export const updateCategoryController = async (req, res) => {
   try {
-    const validation = updateCategorySchema.safeParse(
-      req.body,
-    );
+    const validation = updateCategorySchema.safeParse(req.body);
 
     if (!validation.success) {
       return res.status(400).json({
@@ -118,10 +111,7 @@ export const updateCategoryController = async (req, res) => {
       });
     }
 
-    const existingCategory = await getCategoryById(
-      req.userId,
-      req.params.id,
-    );
+    const existingCategory = await getCategoryById(req.userId, req.params.id);
 
     if (!existingCategory) {
       return res.status(404).json({
@@ -162,10 +152,7 @@ export const updateCategoryController = async (req, res) => {
 
 export const deleteCategoryController = async (req, res) => {
   try {
-    const result = await deleteCategory(
-      req.userId,
-      req.params.id,
-    );
+    const result = await deleteCategory(req.userId, req.params.id);
 
     if (result.count === 0) {
       return res.status(404).json({
@@ -179,6 +166,18 @@ export const deleteCategoryController = async (req, res) => {
       message: "Category deleted successfully",
     });
   } catch (error) {
+    // PostgreSQL foreign-key violation
+    if (
+      error?.meta?.code === "23001" ||
+      error?.message?.includes("violates RESTRICT setting")
+    ) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Cannot delete category because it is being used by expenses",
+      });
+    }
+
     console.error("Delete category error:", error);
 
     return res.status(500).json({

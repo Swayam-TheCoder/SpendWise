@@ -120,8 +120,6 @@ export const login = async ({ email, password, userAgent, ipAddress }) => {
     },
   });
 
-  console.log("Generated Refresh Token:", refreshToken);
-
   return {
     user: {
       id: user.id,

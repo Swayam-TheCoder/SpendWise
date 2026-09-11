@@ -36,13 +36,20 @@ export const createExpenseController = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Create expense error:", error);
-
-    return res.status(500).json({
+  if (error.code === "CATEGORY_NOT_FOUND") {
+    return res.status(400).json({
       success: false,
-      message: "Unable to create expense",
+      message: "Invalid category",
     });
   }
+
+  console.error("Create expense error:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: "Unable to create expense",
+  });
+}
 };
 
 export const getExpensesController = async (req, res) => {
@@ -140,13 +147,20 @@ export const updateExpenseController = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Update expense error:", error);
-
-    return res.status(500).json({
+  if (error.code === "CATEGORY_NOT_FOUND") {
+    return res.status(400).json({
       success: false,
-      message: "Unable to update expense",
+      message: "Invalid category",
     });
   }
+
+  console.error("Update expense error:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: "Unable to update expense",
+  });
+}
 };
 
 export const deleteExpenseController = async (req, res) => {

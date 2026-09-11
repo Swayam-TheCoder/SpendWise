@@ -11,11 +11,9 @@ export const createExpenseSchema = z.object({
     .min(1, "Description is required")
     .max(200, "Description is too long"),
 
-  category: z
+  categoryId: z
     .string()
-    .trim()
-    .min(1, "Category is required")
-    .max(50, "Category is too long"),
+    .uuid("Invalid category ID"),
 
   paymentMethod: z.enum([
     "CASH",
