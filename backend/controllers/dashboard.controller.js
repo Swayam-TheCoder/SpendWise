@@ -4,10 +4,24 @@ import {
   getMonthlySummary,
   getRecentExpenses,
 } from "../services/dashboard.service.js";
+import { dashboardQuerySchema } from "../validators/dashboard.validator.js";
 
 export const getDashboardSummaryController = async (req, res) => {
   try {
-    const summary = await getDashboardSummary(req.userId);
+    const validation = dashboardQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid dashboard filters",
+        errors: validation.error.flatten().fieldErrors,
+      });
+    }
+
+    const summary = await getDashboardSummary(
+      req.userId,
+      validation.data.month,
+    );
 
     return res.status(200).json({
       success: true,
@@ -27,7 +41,20 @@ export const getDashboardSummaryController = async (req, res) => {
 
 export const getCategoryBreakdownController = async (req, res) => {
   try {
-    const breakdown = await getCategoryBreakdown(req.userId);
+    const validation = dashboardQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid dashboard filters",
+        errors: validation.error.flatten().fieldErrors,
+      });
+    }
+
+    const breakdown = await getCategoryBreakdown(
+      req.userId,
+      validation.data.month,
+    );
 
     return res.status(200).json({
       success: true,
@@ -64,7 +91,6 @@ export const getMonthlySummaryController = async (req, res) => {
     });
   }
 };
-
 
 export const getRecentExpensesController = async (req, res) => {
   try {

@@ -1,23 +1,31 @@
 import prisma from "../config/prisma.js";
 
-export const getDashboardSummary = async (userId) => {
+export const getDashboardSummary = async (userId, month) => {
   const now = new Date();
 
-  // Start of current month
-  const startOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-  );
+  let startDate;
+  let endDate;
 
-  // Start of next month
-  const startOfNextMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    1,
-  );
+  if (month) {
+    const [year, monthNumber] = month.split("-").map(Number);
 
-  // Start of today
+    startDate = new Date(year, monthNumber - 1, 1);
+    endDate = new Date(year, monthNumber, 1);
+  } else {
+    // Current month
+    startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    );
+
+    endDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1,
+    );
+  }
+
   const startOfToday = new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -30,6 +38,7 @@ export const getDashboardSummary = async (userId) => {
     todaySpentResult,
     transactionCount,
   ] = await prisma.$transaction([
+    // All-time spending
     prisma.expense.aggregate({
       where: {
         userId,
@@ -39,12 +48,13 @@ export const getDashboardSummary = async (userId) => {
       },
     }),
 
+    // Selected month
     prisma.expense.aggregate({
       where: {
         userId,
         date: {
-          gte: startOfMonth,
-          lt: startOfNextMonth,
+          gte: startDate,
+          lt: endDate,
         },
       },
       _sum: {
@@ -52,6 +62,7 @@ export const getDashboardSummary = async (userId) => {
       },
     }),
 
+    // Today
     prisma.expense.aggregate({
       where: {
         userId,
@@ -65,9 +76,14 @@ export const getDashboardSummary = async (userId) => {
       },
     }),
 
+    // Transactions in selected month
     prisma.expense.count({
       where: {
         userId,
+        date: {
+          gte: startDate,
+          lt: endDate,
+        },
       },
     }),
   ]);
@@ -81,10 +97,39 @@ export const getDashboardSummary = async (userId) => {
 };
 
 
-export const getCategoryBreakdown = async (userId) => {
+export const getCategoryBreakdown = async (userId, month) => {
+  const now = new Date();
+
+  let startDate;
+  let endDate;
+
+  if (month) {
+    const [year, monthNumber] = month.split("-").map(Number);
+
+    startDate = new Date(year, monthNumber - 1, 1);
+    endDate = new Date(year, monthNumber, 1);
+  } else {
+    // Current month
+    startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    );
+
+    endDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1,
+    );
+  }
+
   const expenses = await prisma.expense.findMany({
     where: {
       userId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
     },
     select: {
       amount: true,
@@ -129,6 +174,7 @@ export const getCategoryBreakdown = async (userId) => {
 
   return breakdown.map((category) => ({
     ...category,
+    amount: Number(category.amount.toFixed(2)),
     percentage:
       total > 0
         ? Number(((category.amount / total) * 100).toFixed(2))
