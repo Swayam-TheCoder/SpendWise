@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import expenseRoutes from "./routes/expense.routes.js"
 import categoryRoutes from "./routes/category.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 import cors from "cors";
 import passport from "./config/passport.js";
@@ -29,5 +30,6 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 export default app;
