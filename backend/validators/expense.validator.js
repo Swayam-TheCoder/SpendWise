@@ -30,5 +30,47 @@ export const createExpenseSchema = z.object({
     .optional(),
 });
 
-export const updateExpenseSchema =
-  createExpenseSchema.partial();
+export const updateExpenseSchema = createExpenseSchema.partial();
+
+
+export const expenseQuerySchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20),
+
+  categoryId: z.string().uuid("Invalid category ID").optional(),
+
+  search: z
+    .string()
+    .trim()
+    .max(100, "Search query is too long")
+    .optional(),
+
+  startDate: z
+    .string()
+    .datetime()
+    .optional(),
+
+  endDate: z
+    .string()
+    .datetime()
+    .optional(),
+
+  sortBy: z
+    .enum(["date", "amount", "createdAt"])
+    .default("date"),
+
+  sortOrder: z
+    .enum(["asc", "desc"])
+    .default("desc"),
+});
+

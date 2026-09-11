@@ -8,6 +8,7 @@ import {
 
 import {
   createExpenseSchema,
+  expenseQuerySchema,
   updateExpenseSchema,
 } from "../validators/expense.validator.js";
 
@@ -54,13 +55,24 @@ export const createExpenseController = async (req, res) => {
 
 export const getExpensesController = async (req, res) => {
   try {
-    const expenses = await getExpenses(req.userId);
+    const validation = expenseQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid expense filters",
+        errors: validation.error.flatten().fieldErrors,
+      });
+    }
+
+    const result = await getExpenses(
+      req.userId,
+      validation.data,
+    );
 
     return res.status(200).json({
       success: true,
-      data: {
-        expenses,
-      },
+      data: result,
     });
   } catch (error) {
     console.error("Get expenses error:", error);
