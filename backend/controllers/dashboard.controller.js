@@ -3,6 +3,7 @@ import {
   getCategoryBreakdown,
   getMonthlySummary,
   getRecentExpenses,
+  getDashboard,
 } from "../services/dashboard.service.js";
 import { dashboardQuerySchema } from "../validators/dashboard.validator.js";
 
@@ -108,6 +109,28 @@ export const getRecentExpensesController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to fetch recent expenses",
+    });
+  }
+};
+
+
+
+// for frontend dashboard page, to fetch all data in one request
+
+export const getDashboardController = async (req, res) => {
+  try {
+    const dashboard = await getDashboard(req.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: dashboard,
+    });
+  } catch (error) {
+    console.error("Get dashboard error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch dashboard data",
     });
   }
 };

@@ -213,13 +213,11 @@ export const getMonthlySummary = async (userId) => {
       });
     }
 
-    const current = monthlyMap.get(key);
-
-    current.amount += Number(expense.amount);
+    monthlyMap.get(key).amount += Number(expense.amount);
   }
 
   return Array.from(monthlyMap.values()).map((item) => ({
-    ...item,
+    month: item.month,
     amount: Number(item.amount.toFixed(2)),
   }));
 };
@@ -249,4 +247,29 @@ export const getRecentExpenses = async (userId) => {
       },
     },
   });
+};
+
+
+
+// for frontend dashboard page, to fetch all data in one request
+
+export const getDashboard = async (userId) => {
+  const [
+    summary,
+    categoryBreakdown,
+    monthlySummary,
+    recentExpenses,
+  ] = await Promise.all([
+    getDashboardSummary(userId),
+    getCategoryBreakdown(userId),
+    getMonthlySummary(userId),
+    getRecentExpenses(userId),
+  ]);
+
+  return {
+    summary,
+    categoryBreakdown,
+    monthlySummary,
+    recentExpenses,
+  };
 };
