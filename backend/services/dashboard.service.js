@@ -12,9 +12,7 @@ export const getDashboardSummary = async (userId, month) => {
     startDate = new Date(year, monthNumber - 1, 1);
     endDate = new Date(year, monthNumber, 1);
   } else {
-    // Current month
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-
     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   }
 
@@ -24,13 +22,16 @@ export const getDashboardSummary = async (userId, month) => {
     now.getDate(),
   );
 
+  const isCurrentMonth =
+    startDate.getFullYear() === now.getFullYear() &&
+    startDate.getMonth() === now.getMonth();
+
   const [
     totalSpentResult,
     monthlySpentResult,
     todaySpentResult,
     transactionCount,
   ] = await prisma.$transaction([
-    // All-time spending
     prisma.expense.aggregate({
       where: {
         userId,
@@ -40,7 +41,6 @@ export const getDashboardSummary = async (userId, month) => {
       },
     }),
 
-    // Selected month
     prisma.expense.aggregate({
       where: {
         userId,
@@ -54,7 +54,6 @@ export const getDashboardSummary = async (userId, month) => {
       },
     }),
 
-    // Today
     prisma.expense.aggregate({
       where: {
         userId,
@@ -68,7 +67,6 @@ export const getDashboardSummary = async (userId, month) => {
       },
     }),
 
-    // Transactions in selected month
     prisma.expense.count({
       where: {
         userId,
@@ -82,8 +80,15 @@ export const getDashboardSummary = async (userId, month) => {
 
   return {
     totalSpent: Number(totalSpentResult._sum.amount || 0),
-    thisMonth: Number(monthlySpentResult._sum.amount || 0),
-    today: Number(todaySpentResult._sum.amount || 0),
+
+    thisMonth: Number(
+      monthlySpentResult._sum.amount || 0,
+    ),
+
+    today: isCurrentMonth
+      ? Number(todaySpentResult._sum.amount || 0)
+      : 0,
+
     transactionCount,
   };
 };

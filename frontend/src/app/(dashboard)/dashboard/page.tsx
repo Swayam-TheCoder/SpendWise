@@ -82,6 +82,14 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}`;
+  });
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -89,7 +97,7 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-        const data = await getDashboard();
+        const data = await getDashboard(selectedMonth);
 
         setDashboard(data);
       } catch (error) {
@@ -101,29 +109,56 @@ export default function DashboardPage() {
     };
 
     loadDashboard();
-  }, []);
+  }, [selectedMonth]);
 
   const logout = useAuthStore((state) => state.logout);
 
   if (loading) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070707] text-white">
-      <div className="text-sm text-white/40">
-        Loading your finances...
-      </div>
-    </div>
-  );
-}
+    return (
+      <div className="min-h-screen bg-[#08090d] p-6 text-white">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="h-8 w-64 animate-pulse rounded-lg bg-white/[0.06]" />
 
-if (error) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070707] text-white">
-      <div className="text-sm text-rose-400">
-        {error}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-32 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+              />
+            ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="h-[380px] animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03] lg:col-span-2" />
+            <div className="h-[380px] animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]" />
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#08090d] px-6 text-white">
+        <div className="text-center">
+          <div className="mb-4 text-4xl">⚠️</div>
+
+          <h2 className="text-lg font-semibold">Unable to load dashboard</h2>
+
+          <p className="mt-2 text-sm text-white/50">
+            Something went wrong while fetching your data.
+          </p>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -297,7 +332,13 @@ if (error) {
 
           <header className="flex h-[76px] items-center justify-between border-b border-white/[0.08] px-6 lg:px-9">
             <div>
-              <p className="text-xs text-white/30">Thursday, September 1</p>
+              <p className="text-xs text-white/30">
+                {new Date().toLocaleDateString("en-IN", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
 
               <h2 className="mt-0.5 text-sm font-medium">Financial overview</h2>
             </div>
@@ -309,10 +350,44 @@ if (error) {
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-400" />
               </button>
 
-              <button className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs text-white/60 sm:flex">
-                <span>August 2026</span>
+              <label className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs text-white/60 transition hover:bg-white/[0.05] sm:flex">
+                <span>
+                  {new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString(
+                    "en-IN",
+                    {
+                      month: "long",
+                      year: "numeric",
+                    },
+                  )}
+                </span>
+
                 <ChevronDown className="h-3 w-3" />
-              </button>
+
+                <select
+                  value={selectedMonth}
+                  onChange={(event) => setSelectedMonth(event.target.value)}
+                  className="absolute h-0 w-0 opacity-0"
+                  aria-label="Select month"
+                >
+                  {Array.from({ length: 12 }, (_, index) => {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - index);
+
+                    const value = `${date.getFullYear()}-${String(
+                      date.getMonth() + 1,
+                    ).padStart(2, "0")}`;
+
+                    return (
+                      <option key={value} value={value}>
+                        {date.toLocaleDateString("en-IN", {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
 
               <button className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-white/90">
                 <Plus className="h-3.5 w-3.5" />
@@ -379,17 +454,6 @@ if (error) {
                       {dashboard?.summary.totalSpent.toLocaleString("en-IN") ??
                         "0"}
                     </p>
-
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="flex items-center gap-1 rounded-md bg-emerald-400/10 px-2 py-1 text-[11px] font-medium text-emerald-400">
-                        <ArrowUpRight className="h-3 w-3" />
-                        12.8%
-                      </span>
-
-                      <span className="text-[11px] text-white/30">
-                        vs last month
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -549,25 +613,38 @@ if (error) {
                 </div>
 
                 <div className="relative mt-5 h-[220px]">
-                  <ResponsiveContainer>
+                  <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
-                      <Pie
-                        data={dashboard?.categoryBreakdown ?? []}
-                        dataKey="value"
-                        innerRadius={65}
-                        outerRadius={88}
-                        paddingAngle={4}
-                        stroke="none"
-                      >
-                        {(dashboard?.categoryBreakdown ?? []).map(
-                          (category, index) => (
+                      {dashboard?.categoryBreakdown &&
+                      dashboard.categoryBreakdown.length > 0 ? (
+                        <Pie
+                          data={dashboard.categoryBreakdown}
+                          dataKey="percentage"
+                          nameKey="name"
+                          innerRadius={65}
+                          outerRadius={88}
+                          paddingAngle={4}
+                          stroke="none"
+                        >
+                          {dashboard.categoryBreakdown.map((category) => (
                             <Cell
                               key={category.categoryId}
                               fill={category.color || "#a78bfa"}
                             />
-                          ),
-                        )}
-                      </Pie>
+                          ))}
+                        </Pie>
+                      ) : (
+                        <text
+                          x="50%"
+                          y="50%"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="rgba(255,255,255,0.4)"
+                          fontSize={12}
+                        >
+                          No spending yet
+                        </text>
+                      )}
                     </RechartsPieChart>
                   </ResponsiveContainer>
 
@@ -633,8 +710,29 @@ if (error) {
                 </div>
 
                 <div>
-                  {(dashboard?.recentExpenses ?? []).map((expense) => {
-                    return (
+                  {dashboard?.recentExpenses.length === 0 ? (
+                    <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.05]">
+                        <Receipt className="h-5 w-5 text-white/30" />
+                      </div>
+
+                      <p className="text-sm font-medium text-white/70">
+                        No transactions yet
+                      </p>
+
+                      <p className="mt-1 text-xs text-white/30">
+                        Add your first expense to start tracking your spending.
+                      </p>
+
+                      <button
+                        onClick={() => router.push("/expenses")}
+                        className="mt-4 rounded-xl bg-white px-4 py-2 text-xs font-medium text-black transition hover:bg-white/90"
+                      >
+                        Add expense
+                      </button>
+                    </div>
+                  ) : (
+                    dashboard.recentExpenses.map((expense) => (
                       <div
                         key={expense.id}
                         className="flex items-center gap-4 border-b border-white/[0.05] px-6 py-4 last:border-0"
@@ -658,8 +756,8 @@ if (error) {
                           -₹{Number(expense.amount).toLocaleString("en-IN")}
                         </span>
                       </div>
-                    );
-                  })}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -679,33 +777,25 @@ if (error) {
                 </div>
 
                 <div className="mt-8">
-                  <div className="flex items-end justify-between">
+                  <div className="flex h-full flex-col justify-between">
                     <div>
-                      <span className="text-3xl font-semibold">₹22,150</span>
+                      <p className="text-sm text-white/40">Monthly budget</p>
 
-                      <span className="ml-2 text-xs text-white/30">
-                        of ₹30,000
-                      </span>
+                      <h3 className="mt-3 text-2xl font-semibold">
+                        Coming soon
+                      </h3>
+
+                      <p className="mt-2 text-sm text-white/30">
+                        Set spending limits for your categories.
+                      </p>
                     </div>
 
-                    <span className="text-xs font-medium text-violet-400">
-                      73.8%
-                    </span>
-                  </div>
-
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
-                      style={{
-                        width: "73.8%",
-                      }}
-                    />
-                  </div>
-
-                  <div className="mt-4 flex justify-between text-[10px] text-white/30">
-                    <span>₹7,850 remaining</span>
-
-                    <span>9 days left</span>
+                    <button
+                      onClick={() => router.push("/budgets")}
+                      className="mt-6 w-fit rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 transition hover:bg-white/[0.08]"
+                    >
+                      Create a budget
+                    </button>
                   </div>
                 </div>
 
@@ -778,15 +868,4 @@ function StatCard({
       </div>
     </div>
   );
-}
-
-// And remove the Income legend, leaving:
-
-{
-  /* <div className="mt-4 flex gap-5">
-  <div className="flex items-center gap-2 text-[10px] text-white/40">
-    <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-    Expenses
-  </div>
-</div> */
 }
