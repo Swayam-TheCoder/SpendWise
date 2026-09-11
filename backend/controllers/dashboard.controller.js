@@ -113,13 +113,21 @@ export const getRecentExpensesController = async (req, res) => {
   }
 };
 
-
-
 // for frontend dashboard page, to fetch all data in one request
 
 export const getDashboardController = async (req, res) => {
   try {
-    const dashboard = await getDashboard(req.userId);
+    const validation = dashboardQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid dashboard filters",
+        errors: validation.error.flatten().fieldErrors,
+      });
+    }
+
+    const dashboard = await getDashboard(req.userId, validation.data.month);
 
     return res.status(200).json({
       success: true,

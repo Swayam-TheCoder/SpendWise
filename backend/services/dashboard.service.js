@@ -13,17 +13,9 @@ export const getDashboardSummary = async (userId, month) => {
     endDate = new Date(year, monthNumber, 1);
   } else {
     // Current month
-    startDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-    );
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    endDate = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      1,
-    );
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   }
 
   const startOfToday = new Date(
@@ -96,7 +88,6 @@ export const getDashboardSummary = async (userId, month) => {
   };
 };
 
-
 export const getCategoryBreakdown = async (userId, month) => {
   const now = new Date();
 
@@ -109,116 +100,70 @@ export const getCategoryBreakdown = async (userId, month) => {
     startDate = new Date(year, monthNumber - 1, 1);
     endDate = new Date(year, monthNumber, 1);
   } else {
-    // Current month
-    startDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-    );
-
-    endDate = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      1,
-    );
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   }
 
-  const expenses = await prisma.expense.findMany({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lt: endDate,
-      },
-    },
-    select: {
-      amount: true,
-      categoryRef: {
-        select: {
-          id: true,
-          name: true,
-          icon: true,
-          color: true,
-        },
-      },
-    },
-  });
-
-  const breakdownMap = new Map();
-
-  for (const expense of expenses) {
-    const category = expense.categoryRef;
-
-    if (!breakdownMap.has(category.id)) {
-      breakdownMap.set(category.id, {
-        categoryId: category.id,
-        name: category.name,
-        icon: category.icon,
-        color: category.color,
-        amount: 0,
-      });
-    }
-
-    const current = breakdownMap.get(category.id);
-
-    current.amount += Number(expense.amount);
-  }
-
-  const breakdown = Array.from(breakdownMap.values())
-    .sort((a, b) => b.amount - a.amount);
+  const breakdown = await prisma.$queryRaw`
+    SELECT
+      c.id AS "categoryId",
+      c.name,
+      c.icon,
+      c.color,
+      COALESCE(SUM(e.amount), 0) AS amount
+    FROM "Expense" e
+    JOIN "Category" c
+      ON c.id = e."categoryId"
+    WHERE e."userId" = ${userId}
+      AND e.date >= ${startDate}
+      AND e.date < ${endDate}
+    GROUP BY
+      c.id,
+      c.name,
+      c.icon,
+      c.color
+    ORDER BY SUM(e.amount) DESC
+  `;
 
   const total = breakdown.reduce(
-    (sum, category) => sum + category.amount,
+    (sum, category) => sum + Number(category.amount),
     0,
   );
 
-  return breakdown.map((category) => ({
-    ...category,
-    amount: Number(category.amount.toFixed(2)),
-    percentage:
-      total > 0
-        ? Number(((category.amount / total) * 100).toFixed(2))
-        : 0,
-  }));
+  return breakdown.map((category) => {
+    const amount = Number(category.amount);
+
+    return {
+      categoryId: category.categoryId,
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      amount: Number(amount.toFixed(2)),
+      percentage: total > 0 ? Number(((amount / total) * 100).toFixed(2)) : 0,
+    };
+  });
 };
 
 export const getMonthlySummary = async (userId) => {
-  const expenses = await prisma.expense.findMany({
-    where: {
-      userId,
-    },
-    select: {
-      amount: true,
-      date: true,
-    },
-    orderBy: {
-      date: "asc",
-    },
-  });
+  const monthlySummary = await prisma.$queryRaw`
+    SELECT
+      TO_CHAR(
+        DATE_TRUNC('month', "date"),
+        'YYYY-MM'
+      ) AS month,
+      COALESCE(
+        SUM(amount),
+        0
+      ) AS amount
+    FROM "Expense"
+    WHERE "userId" = ${userId}
+    GROUP BY DATE_TRUNC('month', "date")
+    ORDER BY DATE_TRUNC('month', "date") ASC
+  `;
 
-  const monthlyMap = new Map();
-
-  for (const expense of expenses) {
-    const date = new Date(expense.date);
-
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-
-    const key = `${year}-${String(month).padStart(2, "0")}`;
-
-    if (!monthlyMap.has(key)) {
-      monthlyMap.set(key, {
-        month: key,
-        amount: 0,
-      });
-    }
-
-    monthlyMap.get(key).amount += Number(expense.amount);
-  }
-
-  return Array.from(monthlyMap.values()).map((item) => ({
+  return monthlySummary.map((item) => ({
     month: item.month,
-    amount: Number(item.amount.toFixed(2)),
+    amount: Number(item.amount),
   }));
 };
 
@@ -227,7 +172,7 @@ export const getRecentExpenses = async (userId) => {
     where: {
       userId,
     },
-    take: 5,
+    take: 10,
     orderBy: {
       date: "desc",
     },
@@ -249,22 +194,16 @@ export const getRecentExpenses = async (userId) => {
   });
 };
 
-
-
 // for frontend dashboard page, to fetch all data in one request
 
-export const getDashboard = async (userId) => {
-  const [
-    summary,
-    categoryBreakdown,
-    monthlySummary,
-    recentExpenses,
-  ] = await Promise.all([
-    getDashboardSummary(userId),
-    getCategoryBreakdown(userId),
-    getMonthlySummary(userId),
-    getRecentExpenses(userId),
-  ]);
+export const getDashboard = async (userId, month) => {
+  const [summary, categoryBreakdown, monthlySummary, recentExpenses] =
+    await Promise.all([
+      getDashboardSummary(userId, month),
+      getCategoryBreakdown(userId, month),
+      getMonthlySummary(userId),
+      getRecentExpenses(userId),
+    ]);
 
   return {
     summary,
