@@ -1,7 +1,4 @@
-import axios, {
-  type AxiosError,
-  type InternalAxiosRequestConfig,
-} from "axios";
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -28,17 +25,15 @@ export function configureApiAuth(config: AuthConfig) {
 /**
  * Attach access token to protected requests.
  */
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = authConfig?.getAccessToken();
+apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = authConfig?.getAccessToken();
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-    return config;
-  },
-);
+  return config;
+});
 
 /**
  * Refresh access token automatically when it expires.
@@ -95,7 +90,13 @@ apiClient.interceptors.response.use(
 
             return accessToken;
           })
-          .catch(() => {
+          .catch((error) => {
+            console.error(
+              "REFRESH FAILED:",
+              error.response?.status,
+              error.response?.data,
+            );
+
             authConfig?.clearAuth();
             return null;
           })
@@ -110,8 +111,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      originalRequest.headers.Authorization =
-        `Bearer ${newAccessToken}`;
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
       return apiClient(originalRequest);
     } catch {

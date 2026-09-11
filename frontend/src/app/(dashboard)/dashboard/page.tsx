@@ -1,6 +1,9 @@
 "use client";
 
 import { useAuthStore } from "@/features/auth/auth.store";
+import { getDashboard } from "@/services/dashboard.service";
+import type { DashboardData } from "@/services/dashboard.service";
+import { useEffect, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -40,70 +43,6 @@ import {
   YAxis,
 } from "recharts";
 
-const spendingData = [
-  { month: "Jan", income: 52000, expense: 31000 },
-  { month: "Feb", income: 58000, expense: 35000 },
-  { month: "Mar", income: 54000, expense: 29000 },
-  { month: "Apr", income: 63000, expense: 38000 },
-  { month: "May", income: 59000, expense: 33000 },
-  { month: "Jun", income: 68000, expense: 41000 },
-  { month: "Jul", income: 65000, expense: 36150 },
-];
-
-const categoryData = [
-  {
-    name: "Food",
-    value: 32,
-  },
-  {
-    name: "Shopping",
-    value: 24,
-  },
-  {
-    name: "Transport",
-    value: 18,
-  },
-  {
-    name: "Bills",
-    value: 14,
-  },
-  {
-    name: "Others",
-    value: 12,
-  },
-];
-
-const transactions = [
-  {
-    title: "Swiggy",
-    category: "Food",
-    amount: "-₹480",
-    date: "Today, 12:42 PM",
-    icon: Utensils,
-  },
-  {
-    title: "Amazon",
-    category: "Shopping",
-    amount: "-₹2,499",
-    date: "Yesterday",
-    icon: ShoppingBag,
-  },
-  {
-    title: "Salary",
-    category: "Income",
-    amount: "+₹65,000",
-    date: "Aug 28",
-    icon: TrendingUp,
-  },
-  {
-    title: "Netflix",
-    category: "Entertainment",
-    amount: "-₹649",
-    date: "Aug 27",
-    icon: CreditCard,
-  },
-];
-
 const navItems = [
   {
     label: "Overview",
@@ -140,7 +79,51 @@ export default function DashboardPage() {
 
   const router = useRouter();
 
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await getDashboard();
+
+        setDashboard(data);
+      } catch (error) {
+        console.error("Failed to load dashboard:", error);
+        setError("Unable to load dashboard data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
   const logout = useAuthStore((state) => state.logout);
+
+  if (loading) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#070707] text-white">
+      <div className="text-sm text-white/40">
+        Loading your finances...
+      </div>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#070707] text-white">
+      <div className="text-sm text-rose-400">
+        {error}
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -392,7 +375,9 @@ export default function DashboardPage() {
 
                   <div className="mt-6">
                     <p className="text-4xl font-semibold tracking-tight">
-                      ₹42,850
+                      ₹
+                      {dashboard?.summary.totalSpent.toLocaleString("en-IN") ??
+                        "0"}
                     </p>
 
                     <div className="mt-3 flex items-center gap-2">
@@ -412,31 +397,27 @@ export default function DashboardPage() {
               {/* Income */}
 
               <StatCard
-                title="Income"
-                value="₹65,000"
-                change="+8.2%"
-                positive
-                icon={<ArrowDownRight className="h-4 w-4" />}
-              />
-
-              {/* Expenses */}
-
-              <StatCard
-                title="Expenses"
-                value="₹22,150"
-                change="-4.6%"
+                title="This month"
+                value={`₹${dashboard?.summary.thisMonth.toLocaleString("en-IN") ?? "0"}`}
+                change="Spending"
                 positive
                 icon={<ArrowUpRight className="h-4 w-4" />}
               />
 
-              {/* Savings */}
+              <StatCard
+                title="Today"
+                value={`₹${dashboard?.summary.today.toLocaleString("en-IN") ?? "0"}`}
+                change="Today"
+                positive
+                icon={<CreditCard className="h-4 w-4" />}
+              />
 
               <StatCard
-                title="Savings"
-                value="₹18,450"
-                change="+16.4%"
+                title="Transactions"
+                value={String(dashboard?.summary.transactionCount ?? 0)}
+                change="This month"
                 positive
-                icon={<Target className="h-4 w-4" />}
+                icon={<Receipt className="h-4 w-4" />}
               />
             </div>
 
@@ -448,10 +429,10 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-white/[0.08] bg-[#0b0b0b] p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium">Cash flow</p>
+                    <p className="text-sm font-medium">Spending trend</p>
 
                     <p className="mt-1 text-xs text-white/30">
-                      Income vs expenses
+                      Your monthly spending
                     </p>
                   </div>
 
@@ -462,7 +443,14 @@ export default function DashboardPage() {
 
                 <div className="mt-8 h-[270px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={spendingData}>
+                    <AreaChart
+                      data={
+                        dashboard?.monthlySummary.map((item) => ({
+                          month: item.month.slice(5),
+                          expense: item.amount,
+                        })) ?? []
+                      }
+                    >
                       <defs>
                         <linearGradient
                           id="incomeGradient"
@@ -523,14 +511,6 @@ export default function DashboardPage() {
 
                       <Area
                         type="monotone"
-                        dataKey="income"
-                        strokeWidth={2}
-                        stroke="#a78bfa"
-                        fill="url(#incomeGradient)"
-                      />
-
-                      <Area
-                        type="monotone"
                         dataKey="expense"
                         strokeWidth={2}
                         stroke="#fb7185"
@@ -572,33 +552,31 @@ export default function DashboardPage() {
                   <ResponsiveContainer>
                     <RechartsPieChart>
                       <Pie
-                        data={categoryData}
+                        data={dashboard?.categoryBreakdown ?? []}
                         dataKey="value"
                         innerRadius={65}
                         outerRadius={88}
                         paddingAngle={4}
                         stroke="none"
                       >
-                        {categoryData.map((_, index) => (
-                          <Cell
-                            key={index}
-                            fill={
-                              [
-                                "#a78bfa",
-                                "#fb7185",
-                                "#38bdf8",
-                                "#fbbf24",
-                                "#34d399",
-                              ][index]
-                            }
-                          />
-                        ))}
+                        {(dashboard?.categoryBreakdown ?? []).map(
+                          (category, index) => (
+                            <Cell
+                              key={category.categoryId}
+                              fill={category.color || "#a78bfa"}
+                            />
+                          ),
+                        )}
                       </Pie>
                     </RechartsPieChart>
                   </ResponsiveContainer>
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-semibold">₹22.1k</span>
+                    <span className="text-2xl font-semibold">
+                      ₹
+                      {dashboard?.summary.thisMonth.toLocaleString("en-IN") ??
+                        "0"}
+                    </span>
 
                     <span className="text-[10px] text-white/30">
                       Total spent
@@ -607,22 +585,16 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {categoryData.map((category, index) => (
+                  {(dashboard?.categoryBreakdown ?? []).map((category) => (
                     <div
-                      key={category.name}
+                      key={category.categoryId}
                       className="flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className="h-2 w-2 rounded-full"
                           style={{
-                            backgroundColor: [
-                              "#a78bfa",
-                              "#fb7185",
-                              "#38bdf8",
-                              "#fbbf24",
-                              "#34d399",
-                            ][index],
+                            backgroundColor: category.color || "#a78bfa",
                           }}
                         />
 
@@ -632,7 +604,7 @@ export default function DashboardPage() {
                       </div>
 
                       <span className="text-xs font-medium">
-                        {category.value}%
+                        {category.percentage}%
                       </span>
                     </div>
                   ))}
@@ -661,36 +633,29 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  {transactions.map((transaction) => {
-                    const Icon = transaction.icon;
-
-                    const positive = transaction.amount.startsWith("+");
-
+                  {(dashboard?.recentExpenses ?? []).map((expense) => {
                     return (
                       <div
-                        key={transaction.title}
+                        key={expense.id}
                         className="flex items-center gap-4 border-b border-white/[0.05] px-6 py-4 last:border-0"
                       >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05]">
-                          <Icon className="h-4 w-4 text-white/60" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] text-lg">
+                          {expense.categoryRef.icon || "💳"}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">
-                            {transaction.title}
+                            {expense.description}
                           </p>
 
                           <p className="mt-0.5 text-[10px] text-white/30">
-                            {transaction.category} · {transaction.date}
+                            {expense.categoryRef.name} ·{" "}
+                            {new Date(expense.date).toLocaleDateString("en-IN")}
                           </p>
                         </div>
 
-                        <span
-                          className={`text-sm font-medium ${
-                            positive ? "text-emerald-400" : "text-white"
-                          }`}
-                        >
-                          {transaction.amount}
+                        <span className="text-sm font-medium">
+                          -₹{Number(expense.amount).toLocaleString("en-IN")}
                         </span>
                       </div>
                     );
@@ -813,4 +778,15 @@ function StatCard({
       </div>
     </div>
   );
+}
+
+// And remove the Income legend, leaving:
+
+{
+  /* <div className="mt-4 flex gap-5">
+  <div className="flex items-center gap-2 text-[10px] text-white/40">
+    <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+    Expenses
+  </div>
+</div> */
 }
