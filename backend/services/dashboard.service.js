@@ -135,3 +135,72 @@ export const getCategoryBreakdown = async (userId) => {
         : 0,
   }));
 };
+
+export const getMonthlySummary = async (userId) => {
+  const expenses = await prisma.expense.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      amount: true,
+      date: true,
+    },
+    orderBy: {
+      date: "asc",
+    },
+  });
+
+  const monthlyMap = new Map();
+
+  for (const expense of expenses) {
+    const date = new Date(expense.date);
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+
+    if (!monthlyMap.has(key)) {
+      monthlyMap.set(key, {
+        month: key,
+        amount: 0,
+      });
+    }
+
+    const current = monthlyMap.get(key);
+
+    current.amount += Number(expense.amount);
+  }
+
+  return Array.from(monthlyMap.values()).map((item) => ({
+    ...item,
+    amount: Number(item.amount.toFixed(2)),
+  }));
+};
+
+export const getRecentExpenses = async (userId) => {
+  return prisma.expense.findMany({
+    where: {
+      userId,
+    },
+    take: 5,
+    orderBy: {
+      date: "desc",
+    },
+    select: {
+      id: true,
+      amount: true,
+      description: true,
+      paymentMethod: true,
+      date: true,
+      categoryRef: {
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          color: true,
+        },
+      },
+    },
+  });
+};
