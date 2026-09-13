@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   SlidersHorizontal,
   X,
+  ArrowLeft,
 } from "lucide-react";
 
 import {
@@ -22,12 +23,14 @@ import {
 
 import { getCategories, type Category } from "@/services/category.service";
 import { useDashboardStore } from "@/features/dashboard/dashboard.store";
+import { useRouter } from "next/navigation";
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const [categoryId, setCategoryId] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -179,6 +182,14 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-center">
         <div>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mb-4 inline-flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </button>
           <p className="mb-2 text-sm text-white/35">Your finances</p>
 
           <h1 className="text-3xl font-semibold tracking-tight">

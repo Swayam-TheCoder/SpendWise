@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownRight,
+  ArrowLeft,
   BarChart3,
   CalendarDays,
   ChevronDown,
@@ -29,8 +30,10 @@ import {
   getDashboard,
   type DashboardData,
 } from "@/services/dashboard.service";
+import { useRouter } from "next/navigation";
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const isAuthenticated = useAuthStore(
     (state) => state.isAuthenticated,
   );
@@ -147,6 +150,14 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
+            <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mb-4 inline-flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </button>
             <div className="flex items-center gap-2 text-white/35">
               <BarChart3 className="h-4 w-4" />
 

@@ -9,8 +9,11 @@ import {
   deleteCategory,
   type Category,
 } from "@/services/category.service";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function CategoriesPage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -148,6 +151,14 @@ export default function CategoriesPage() {
     <div className="p-8">
       <div className="flex items-center justify-between">
         <div>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mb-4 inline-flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </button>
           <h1 className="text-2xl font-semibold text-white">Categories</h1>
 
           <p className="mt-1 text-sm text-white/40">Organize your expenses</p>

@@ -11,6 +11,7 @@ import {
   Wallet,
   AlertTriangle,
   CheckCircle2,
+  ArrowLeft,
 } from "lucide-react";
 
 import { useAuthStore } from "@/features/auth/auth.store";
@@ -22,20 +23,14 @@ import {
   type Budget,
 } from "@/services/budget.service";
 
-import {
-  getCategories,
-  type Category,
-} from "@/services/category.service";
+import { getCategories, type Category } from "@/services/category.service";
 import { useDashboardStore } from "@/features/dashboard/dashboard.store";
+import { useRouter } from "next/navigation";
 
 export default function BudgetsPage() {
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated,
-  );
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const isAuthChecked = useAuthStore(
-    (state) => state.isAuthChecked,
-  );
+  const isAuthChecked = useAuthStore((state) => state.isAuthChecked);
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -44,22 +39,23 @@ export default function BudgetsPage() {
   const [saving, setSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const triggerDashboardRefresh = useDashboardStore(
-  (state) => state.triggerRefresh,
-);
+    (state) => state.triggerRefresh,
+  );
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
 
-    return `${now.getFullYear()}-${String(
-      now.getMonth() + 1,
-    ).padStart(2, "0")}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}`;
   });
 
   const [showModal, setShowModal] = useState(false);
-  const [editingBudget, setEditingBudget] =
-    useState<Budget | null>(null);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
   const [form, setForm] = useState({
     categoryId: "",
@@ -100,32 +96,19 @@ export default function BudgetsPage() {
   });
 
   const totalBudget = useMemo(
-    () =>
-      budgets.reduce(
-        (total, budget) => total + budget.budget,
-        0,
-      ),
+    () => budgets.reduce((total, budget) => total + budget.budget, 0),
     [budgets],
   );
 
   const totalSpent = useMemo(
-    () =>
-      budgets.reduce(
-        (total, budget) => total + budget.spent,
-        0,
-      ),
+    () => budgets.reduce((total, budget) => total + budget.spent, 0),
     [budgets],
   );
 
-  const totalRemaining = Math.max(
-    totalBudget - totalSpent,
-    0,
-  );
+  const totalRemaining = Math.max(totalBudget - totalSpent, 0);
 
   const overallPercentage =
-    totalBudget > 0
-      ? Math.round((totalSpent / totalBudget) * 100)
-      : 0;
+    totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
   const openCreate = () => {
     setEditingBudget(null);
@@ -152,78 +135,72 @@ export default function BudgetsPage() {
   };
 
   const handleSubmit = async () => {
-  const amount = Number(form.amount);
+    const amount = Number(form.amount);
 
-  if (!editingBudget && !form.categoryId) {
-    setError("Please select a category.");
-    return;
-  }
-
-  if (!amount || amount <= 0) {
-    setError("Please enter a valid budget amount.");
-    return;
-  }
-
-  try {
-    setSaving(true);
-    setError(null);
-
-    if (editingBudget) {
-      await updateBudget(
-        editingBudget.id,
-        amount,
-      );
-    } else {
-      await createBudget({
-        categoryId: form.categoryId,
-        amount,
-        month: selectedMonth,
-      });
+    if (!editingBudget && !form.categoryId) {
+      setError("Please select a category.");
+      return;
     }
 
-    // Refresh dashboard data
-    triggerDashboardRefresh();
+    if (!amount || amount <= 0) {
+      setError("Please enter a valid budget amount.");
+      return;
+    }
 
-    setShowModal(false);
-    await loadData();
-  } catch (error: any) {
-    console.error("Failed to save budget:", error);
+    try {
+      setSaving(true);
+      setError(null);
 
-    const message =
-      error?.response?.data?.message ||
-      "Unable to save budget.";
+      if (editingBudget) {
+        await updateBudget(editingBudget.id, amount);
+      } else {
+        await createBudget({
+          categoryId: form.categoryId,
+          amount,
+          month: selectedMonth,
+        });
+      }
 
-    setError(message);
-  } finally {
-    setSaving(false);
-  }
-};
+      // Refresh dashboard data
+      triggerDashboardRefresh();
+
+      setShowModal(false);
+      await loadData();
+    } catch (error: any) {
+      console.error("Failed to save budget:", error);
+
+      const message =
+        error?.response?.data?.message || "Unable to save budget.";
+
+      setError(message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async (budget: Budget) => {
-  const confirmed = window.confirm(
-    `Delete ${budget.category.name} budget for ${monthLabel}?`,
-  );
+    const confirmed = window.confirm(
+      `Delete ${budget.category.name} budget for ${monthLabel}?`,
+    );
 
-  if (!confirmed) return;
+    if (!confirmed) return;
 
-  try {
-    await deleteBudget(budget.id);
+    try {
+      await deleteBudget(budget.id);
 
-    triggerDashboardRefresh();
+      triggerDashboardRefresh();
 
-    await loadData();
-  } catch (error) {
-    console.error("Failed to delete budget:", error);
-    alert("Unable to delete budget.");
-  }
-};
+      await loadData();
+    } catch (error) {
+      console.error("Failed to delete budget:", error);
+      alert("Unable to delete budget.");
+    }
+  };
 
   if (!isAuthChecked || loading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center">
-        <p className="text-sm text-white/35">
-          Loading budgets...
-        </p>
+        <p className="text-sm text-white/35">Loading budgets...</p>
       </div>
     );
   }
@@ -236,6 +213,14 @@ export default function BudgetsPage() {
         {/* Header */}
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="mb-4 inline-flex items-center gap-2 text-sm text-white/40 transition hover:text-white"
+            >
+              <ArrowLeft size={16} />
+              Back to dashboard
+            </button>
             <p className="text-xs uppercase tracking-[0.2em] text-white/30">
               Budget planning
             </p>
@@ -245,8 +230,7 @@ export default function BudgetsPage() {
             </h1>
 
             <p className="mt-2 text-sm text-white/35">
-              Set limits for each category and keep your spending
-              on track.
+              Set limits for each category and keep your spending on track.
             </p>
           </div>
 
@@ -257,36 +241,25 @@ export default function BudgetsPage() {
 
               <select
                 value={selectedMonth}
-                onChange={(event) =>
-                  setSelectedMonth(event.target.value)
-                }
+                onChange={(event) => setSelectedMonth(event.target.value)}
                 className="appearance-none rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-10 text-sm text-white outline-none transition hover:bg-white/[0.06]"
               >
                 {Array.from({ length: 12 }, (_, index) => {
                   const date = new Date();
 
-                  date.setMonth(
-                    date.getMonth() - index,
-                  );
+                  date.setMonth(date.getMonth() - index);
 
                   const value = `${date.getFullYear()}-${String(
                     date.getMonth() + 1,
                   ).padStart(2, "0")}`;
 
-                  const label = date.toLocaleDateString(
-                    "en-IN",
-                    {
-                      month: "long",
-                      year: "numeric",
-                    },
-                  );
+                  const label = date.toLocaleDateString("en-IN", {
+                    month: "long",
+                    year: "numeric",
+                  });
 
                   return (
-                    <option
-                      key={value}
-                      value={value}
-                      className="bg-[#111]"
-                    >
+                    <option key={value} value={value} className="bg-[#111]">
                       {label}
                     </option>
                   );
@@ -317,9 +290,7 @@ export default function BudgetsPage() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium">
-                    {monthLabel} overview
-                  </p>
+                  <p className="text-sm font-medium">{monthLabel} overview</p>
 
                   <p className="text-xs text-white/30">
                     Across {budgets.length} category
@@ -330,29 +301,18 @@ export default function BudgetsPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-6 lg:min-w-[520px]">
-              <BudgetSummary
-                label="Budget"
-                value={totalBudget}
-              />
+              <BudgetSummary label="Budget" value={totalBudget} />
 
-              <BudgetSummary
-                label="Spent"
-                value={totalSpent}
-              />
+              <BudgetSummary label="Spent" value={totalSpent} />
 
-              <BudgetSummary
-                label="Remaining"
-                value={totalRemaining}
-              />
+              <BudgetSummary label="Remaining" value={totalRemaining} />
             </div>
           </div>
 
           {/* Overall progress */}
           <div className="mt-7">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs text-white/30">
-                Overall spending
-              </span>
+              <span className="text-xs text-white/30">Overall spending</span>
 
               <span className="text-xs font-medium text-white/60">
                 {overallPercentage}%
@@ -369,10 +329,7 @@ export default function BudgetsPage() {
                       : "bg-white"
                 }`}
                 style={{
-                  width: `${Math.min(
-                    overallPercentage,
-                    100,
-                  )}%`,
+                  width: `${Math.min(overallPercentage, 100)}%`,
                 }}
               />
             </div>
@@ -389,9 +346,7 @@ export default function BudgetsPage() {
         {/* Budgets */}
         <div className="mt-8">
           <div className="mb-4">
-            <h2 className="text-lg font-medium">
-              Category budgets
-            </h2>
+            <h2 className="text-lg font-medium">Category budgets</h2>
 
             <p className="mt-1 text-xs text-white/30">
               Your spending limits for {monthLabel}
@@ -404,13 +359,11 @@ export default function BudgetsPage() {
                 <Wallet className="h-6 w-6 text-white/25" />
               </div>
 
-              <h3 className="mt-5 text-base font-medium">
-                No budgets yet
-              </h3>
+              <h3 className="mt-5 text-base font-medium">No budgets yet</h3>
 
               <p className="mx-auto mt-2 max-w-sm text-sm text-white/30">
-                Set your first category budget and start keeping
-                your spending under control.
+                Set your first category budget and start keeping your spending
+                under control.
               </p>
 
               <button
@@ -449,9 +402,7 @@ export default function BudgetsPage() {
           <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-[#0d0d0d] p-6 shadow-2xl">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/25">
-                {editingBudget
-                  ? "Edit budget"
-                  : "New budget"}
+                {editingBudget ? "Edit budget" : "New budget"}
               </p>
 
               <h2 className="mt-2 text-xl font-semibold">
@@ -460,9 +411,7 @@ export default function BudgetsPage() {
                   : "Create a category budget"}
               </h2>
 
-              <p className="mt-1 text-sm text-white/30">
-                {monthLabel}
-              </p>
+              <p className="mt-1 text-sm text-white/30">{monthLabel}</p>
             </div>
 
             <div className="mt-7 space-y-5">
@@ -482,10 +431,7 @@ export default function BudgetsPage() {
                     }
                     className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-white/[0.18]"
                   >
-                    <option
-                      value=""
-                      className="bg-[#111]"
-                    >
+                    <option value="" className="bg-[#111]">
                       Select category
                     </option>
 
@@ -493,9 +439,7 @@ export default function BudgetsPage() {
                       .filter(
                         (category) =>
                           !budgets.some(
-                            (budget) =>
-                              budget.category.id ===
-                              category.id,
+                            (budget) => budget.category.id === category.id,
                           ),
                       )
                       .map((category) => (
@@ -504,8 +448,7 @@ export default function BudgetsPage() {
                           value={category.id}
                           className="bg-[#111]"
                         >
-                          {category.icon || "📁"}{" "}
-                          {category.name}
+                          {category.icon || "📁"} {category.name}
                         </option>
                       ))}
                   </select>
@@ -575,13 +518,7 @@ export default function BudgetsPage() {
   );
 }
 
-function BudgetSummary({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
+function BudgetSummary({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <p className="text-[10px] uppercase tracking-wider text-white/25">
@@ -611,20 +548,17 @@ function BudgetCard({
   const statusConfig = {
     ON_TRACK: {
       label: "On track",
-      className:
-        "border-emerald-400/15 bg-emerald-400/5 text-emerald-300",
+      className: "border-emerald-400/15 bg-emerald-400/5 text-emerald-300",
       icon: CheckCircle2,
     },
     WARNING: {
       label: "Near limit",
-      className:
-        "border-yellow-400/15 bg-yellow-400/5 text-yellow-300",
+      className: "border-yellow-400/15 bg-yellow-400/5 text-yellow-300",
       icon: AlertTriangle,
     },
     OVER_BUDGET: {
       label: "Over budget",
-      className:
-        "border-red-400/15 bg-red-400/5 text-red-300",
+      className: "border-red-400/15 bg-red-400/5 text-red-300",
       icon: AlertTriangle,
     },
   };
@@ -637,8 +571,7 @@ function BudgetCard({
       <div
         className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full opacity-10 blur-3xl"
         style={{
-          backgroundColor:
-            budget.category.color || "#a78bfa",
+          backgroundColor: budget.category.color || "#a78bfa",
         }}
       />
 
@@ -648,9 +581,7 @@ function BudgetCard({
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg"
               style={{
-                backgroundColor: `${
-                  budget.category.color || "#a78bfa"
-                }20`,
+                backgroundColor: `${budget.category.color || "#a78bfa"}20`,
               }}
             >
               {budget.category.icon || "📁"}
@@ -661,18 +592,14 @@ function BudgetCard({
                 {budget.category.name}
               </p>
 
-              <p className="mt-1 text-xs text-white/25">
-                Monthly budget
-              </p>
+              <p className="mt-1 text-xs text-white/25">Monthly budget</p>
             </div>
           </div>
 
           <div className="relative">
             <button
               type="button"
-              onClick={() =>
-                setMenuOpen((current) => !current)
-              }
+              onClick={() => setMenuOpen((current) => !current)}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.06] hover:text-white"
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -750,13 +677,10 @@ function BudgetCard({
 
             <span className="text-[10px] text-white/35">
               {budget.remaining > 0
-                ? `₹${budget.remaining.toLocaleString(
+                ? `₹${budget.remaining.toLocaleString("en-IN")} remaining`
+                : `₹${Math.max(budget.spent - budget.budget, 0).toLocaleString(
                     "en-IN",
-                  )} remaining`
-                : `₹${Math.max(
-                    budget.spent - budget.budget,
-                    0,
-                  ).toLocaleString("en-IN")} over`}
+                  )} over`}
             </span>
           </div>
         </div>
