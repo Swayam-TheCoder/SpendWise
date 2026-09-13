@@ -49,7 +49,7 @@ export const createBudget = async (userId, { categoryId, amount, month }) => {
     throw error;
   }
 
-  return prisma.budget.create({
+  const createdBudget = await prisma.budget.create({
     data: {
       userId,
       categoryId,
@@ -60,6 +60,11 @@ export const createBudget = async (userId, { categoryId, amount, month }) => {
       category: true,
     },
   });
+
+  return {
+    ...createdBudget,
+    amount: Number(createdBudget.amount),
+  };
 };
 
 export const getBudgets = async (userId, month) => {
