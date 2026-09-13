@@ -23,6 +23,9 @@ import {
   FolderOpen,
   Menu,
   X,
+  Smartphone,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -69,6 +72,33 @@ const accountItems = [
   },
 ];
 
+const mobileSlides = [
+  {
+    eyebrow: "SPENDWISE MOBILE",
+    title: "Your finances,\nwherever you go.",
+    description:
+      "Track expenses, check your spending and stay in control from your phone.",
+    icon: Smartphone,
+    action: "Coming soon",
+  },
+  {
+    eyebrow: "SMART TRACKING",
+    title: "Log expenses\nin seconds.",
+    description:
+      "Add a transaction the moment you spend. No spreadsheets. No friction.",
+    icon: Zap,
+    action: "Coming soon",
+  },
+  {
+    eyebrow: "FINANCIAL CLARITY",
+    title: "Understand your\nmoney better.",
+    description:
+      "See your spending patterns and make better decisions wherever you are.",
+    icon: PieChart,
+    action: "Coming soon",
+  },
+];
+
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
@@ -86,6 +116,7 @@ export default function DashboardPage() {
 
   const isAuthChecked = useAuthStore((state) => state.isAuthChecked);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSlide, setMobileSlide] = useState(0);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -828,6 +859,98 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            
+            {/* ================= MOBILE APP ================= */}
+<div className="mt-4">
+  <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]">
+    <div className="relative min-h-[260px] p-6 sm:p-8">
+
+      {/* Background glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
+
+      <div className="relative z-10 flex h-full flex-col justify-between">
+
+        <div className="flex items-start justify-between gap-6">
+          <div className="max-w-xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-violet-400/80">
+              {mobileSlides[mobileSlide].eyebrow}
+            </p>
+
+            <h3 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              {mobileSlides[mobileSlide].title}
+            </h3>
+
+            <p className="mt-4 max-w-lg text-sm leading-6 text-white/40">
+              {mobileSlides[mobileSlide].description}
+            </p>
+          </div>
+
+          <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.05] sm:flex">
+            {(() => {
+              const Icon = mobileSlides[mobileSlide].icon;
+
+              return <Icon className="h-6 w-6 text-white/70" />;
+            })()}
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center justify-between">
+
+          {/* Dots */}
+          <div className="flex items-center gap-2">
+            {mobileSlides.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setMobileSlide(index)}
+                className={`h-1.5 rounded-full transition-all ${
+                  index === mobileSlide
+                    ? "w-7 bg-white"
+                    : "w-1.5 bg-white/20 hover:bg-white/40"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Arrows */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setMobileSlide(
+                  (current) =>
+                    (current - 1 + mobileSlides.length) %
+                    mobileSlides.length,
+                )
+              }
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setMobileSlide(
+                  (current) =>
+                    (current + 1) % mobileSlides.length,
+                )
+              }
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+            
           </div>
         </main>
       </div>
