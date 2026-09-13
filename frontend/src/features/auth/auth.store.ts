@@ -8,6 +8,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthChecked: boolean;
 
   login: (email: string, password: string) => Promise<void>;
 
@@ -33,6 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   isAuthenticated: false,
   isLoading: false,
+  isAuthChecked: false,
 
   // =========================
   // LOGIN
@@ -82,27 +84,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   // =========================
 
   refresh: async () => {
-    try {
-      const response = await authApi.refresh();
+  try {
+    const response = await authApi.refresh();
 
-      if (!response?.accessToken) {
-        set({
-          user: null,
-          accessToken: null,
-          isAuthenticated: false,
-        });
-
-        return false;
-      }
-
-      set({
-        accessToken: response.accessToken,
-        user: response.user ?? null,
-        isAuthenticated: true,
-      });
-
-      return true;
-    } catch {
+    if (!response?.accessToken) {
       set({
         user: null,
         accessToken: null,
@@ -111,7 +96,28 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       return false;
     }
-  },
+
+    set({
+      accessToken: response.accessToken,
+      user: response.user ?? null,
+      isAuthenticated: true,
+    });
+
+    return true;
+  } catch {
+    set({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+    });
+
+    return false;
+  } finally {
+    set({
+      isAuthChecked: true,
+    });
+  }
+},
 
   // =========================
   // LOGOUT CURRENT SESSION

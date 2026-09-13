@@ -53,6 +53,33 @@ export const getExpense = async (id: string): Promise<Expense> => {
   return response.data.data;
 };
 
+export const createExpense = async (data: {
+  amount: number;
+  description: string;
+  categoryId: string;
+  paymentMethod: string;
+  date: string;
+}): Promise<Expense> => {
+  const response = await apiClient.post("/expenses", data);
+
+  return response.data.data.expense;
+};
+
+export const updateExpense = async (
+  id: string,
+  data: {
+    amount: number;
+    description: string;
+    categoryId: string;
+    paymentMethod: string;
+    date: string;
+  },
+): Promise<Expense> => {
+  const response = await apiClient.patch(`/expenses/${id}`, data);
+
+  return response.data.data.expense;
+};
+
 export const deleteExpense = async (id: string) => {
   const response = await apiClient.delete(`/expenses/${id}`);
 

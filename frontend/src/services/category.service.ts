@@ -22,15 +22,3 @@ export const createCategory = async (data: {
 
   return response.data.data.category;
 };
-
-export const createExpense = async (data: {
-  amount: number;
-  description: string;
-  categoryId: string;
-  paymentMethod: string;
-  date: string;
-}): Promise<Expense> => {
-  const response = await apiClient.post("/expenses", data);
-
-  return response.data.data.expense;
-};

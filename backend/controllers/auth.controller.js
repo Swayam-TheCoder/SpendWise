@@ -25,6 +25,15 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 import argon2 from "argon2";
 
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+
 export const signupController = async (req, res) => {
   try {
     const data = signupSchema.parse(req.body);
@@ -73,12 +82,7 @@ export const loginController = async (req, res) => {
       ipAddress: req.ip,
     });
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -171,12 +175,7 @@ export const refreshController = async (req, res) => {
 
     const result = await refreshSession(refreshToken);
 
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -494,12 +493,7 @@ export const googleCallbackController = async (req, res) => {
     });
 
     // Store refresh token in HttpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     // Don't put access token in URL
     return res.redirect(`${process.env.FRONTEND_URL}/auth/google/success`);

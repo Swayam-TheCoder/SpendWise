@@ -5,12 +5,10 @@ import { getDashboard } from "@/services/dashboard.service";
 import type { DashboardData } from "@/services/dashboard.service";
 import { useEffect, useState } from "react";
 import {
-  ArrowDownRight,
   ArrowUpRight,
   Bell,
   ChevronDown,
   CreditCard,
-  DollarSign,
   Download,
   Home,
   MoreHorizontal,
@@ -18,11 +16,8 @@ import {
   Plus,
   Receipt,
   Settings,
-  ShoppingBag,
   Sparkles,
   Target,
-  TrendingUp,
-  Utensils,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -31,8 +26,6 @@ import { useRouter } from "next/navigation";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -82,6 +75,11 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const isAuthChecked = useAuthStore((state) => state.isAuthChecked);
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
 
@@ -92,6 +90,10 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    if (!isAuthChecked || !isAuthenticated) {
+      return;
+    }
+
     const loadDashboard = async () => {
       try {
         setLoading(true);
@@ -102,16 +104,14 @@ export default function DashboardPage() {
         setDashboard(data);
       } catch (error) {
         console.error("Failed to load dashboard:", error);
-        setError("Unable to load dashboard data.");
+        setError("Something went wrong while fetching your data.");
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboard();
-  }, [selectedMonth]);
-
-  const logout = useAuthStore((state) => state.logout);
+  }, [isAuthChecked, isAuthenticated, selectedMonth]);
 
   if (loading) {
     return (
@@ -389,7 +389,10 @@ export default function DashboardPage() {
                 </select>
               </label>
 
-              <button className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-white/90">
+              <button
+                className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-white/90"
+                onClick={() => router.push("/transactions")}
+              >
                 <Plus className="h-3.5 w-3.5" />
                 Add transaction
               </button>
@@ -416,7 +419,7 @@ export default function DashboardPage() {
                 </h1>
 
                 <p className="mt-2 text-sm text-white/35">
-                  Here's what's happening with your money.
+                  Here&apos;s what&apos;s happening with your money.
                 </p>
               </div>
             </div>
@@ -710,7 +713,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  {dashboard?.recentExpenses.length === 0 ? (
+                  {dashboard && dashboard.recentExpenses.length === 0 ? (
                     <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
                       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.05]">
                         <Receipt className="h-5 w-5 text-white/30" />
@@ -725,13 +728,13 @@ export default function DashboardPage() {
                       </p>
 
                       <button
-                        onClick={() => router.push("/expenses")}
+                        onClick={() => router.push("/transactions")}
                         className="mt-4 rounded-xl bg-white px-4 py-2 text-xs font-medium text-black transition hover:bg-white/90"
                       >
                         Add expense
                       </button>
                     </div>
-                  ) : (
+                  ) : dashboard ? (
                     dashboard.recentExpenses.map((expense) => (
                       <div
                         key={expense.id}
@@ -757,7 +760,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     ))
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -809,8 +812,8 @@ export default function DashboardPage() {
                       <p className="text-xs font-medium">Smart insight</p>
 
                       <p className="mt-1 text-[10px] leading-4 text-white/35">
-                        You're spending 14% less on food this month. Keep it up
-                        — you're on track to save ₹3,200.
+                        You&apos;re spending 14% less on food this month. Keep
+                        it up — you&apos;re on track to save ₹3,200.
                       </p>
                     </div>
                   </div>
