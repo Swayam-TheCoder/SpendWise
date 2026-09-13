@@ -11,6 +11,7 @@ import cors from "cors";
 import passport from "./config/passport.js";
 const app = express();
 
+app.set("trust proxy", 1);
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
