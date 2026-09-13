@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import {
   Search,
   Plus,
-  MoreHorizontal,
   Trash2,
   Pencil,
   ArrowUpDown,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 
 import {
@@ -16,6 +17,7 @@ import {
   updateExpense,
   deleteExpense,
   type Expense,
+  ExpenseListResponse,
 } from "@/services/expense.service";
 
 import { getCategories, type Category } from "@/services/category.service";
@@ -26,9 +28,21 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const [categoryId, setCategoryId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [sortBy, setSortBy] = useState<"date" | "amount" | "createdAt">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const [page, setPage] = useState(1);
+
+  const [pagination, setPagination] = useState<
+    ExpenseListResponse["pagination"] | null
+  >(null);
 
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -90,14 +104,18 @@ export default function TransactionsPage() {
       setError(null);
 
       const data = await getExpenses({
-        page: 1,
-        limit: 20,
+        page,
+        limit: 10,
         search: search || undefined,
-        sortBy: "date",
-        sortOrder: "desc",
+        categoryId: categoryId || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        sortBy,
+        sortOrder,
       });
 
       setExpenses(data.expenses);
+      setPagination(data.pagination);
     } catch (error) {
       console.error("Failed to load expenses:", error);
       setError("Unable to load transactions.");
@@ -107,24 +125,42 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryId, startDate, endDate, sortBy, sortOrder]);
+
+  useEffect(() => {
     const timeout = setTimeout(() => {
       loadExpenses();
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, categoryId, startDate, endDate, sortBy, sortOrder, page]);
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this transaction?",
-    );
-
-    if (!confirmed) return;
-
     try {
       await deleteExpense(id);
 
-      setExpenses((current) => current.filter((expense) => expense.id !== id));
+      // If this was the last item on the current page,
+      // move back to the previous page.
+      if (expenses.length === 1 && page > 1) {
+        setPage((current) => current - 1);
+        return;
+      }
+
+      await loadExpenses();
     } catch (error) {
       console.error("Failed to delete expense:", error);
       alert("Unable to delete transaction.");
@@ -166,6 +202,96 @@ export default function TransactionsPage() {
           placeholder="Search transactions..."
           className="w-full bg-transparent px-3 py-3 text-sm outline-none placeholder:text-white/25"
         />
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+        <div className="mb-4 flex items-center gap-2 text-sm font-medium text-white/70">
+          <SlidersHorizontal size={16} />
+          Filters
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          {/* Category */}
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
+          >
+            <option value="">All categories</option>
+
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.icon ? `${category.icon} ` : ""}
+                {category.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Start date */}
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
+          />
+
+          {/* End date */}
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
+          />
+
+          {/* Sort by */}
+          <select
+            value={sortBy}
+            onChange={(e) =>
+              setSortBy(e.target.value as "date" | "amount" | "createdAt")
+            }
+            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
+          >
+            <option value="date">Sort by date</option>
+            <option value="amount">Sort by amount</option>
+            <option value="createdAt">Sort by created</option>
+          </select>
+
+          {/* Sort order */}
+          <button
+            type="button"
+            onClick={() =>
+              setSortOrder((current) => (current === "desc" ? "asc" : "desc"))
+            }
+            className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            <ArrowUpDown size={16} />
+
+            {sortOrder === "desc" ? "Descending" : "Ascending"}
+          </button>
+        </div>
+
+        {/* Clear filters */}
+        {(categoryId ||
+          startDate ||
+          endDate ||
+          sortBy !== "date" ||
+          sortOrder !== "desc") && (
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryId("");
+              setStartDate("");
+              setEndDate("");
+              setSortBy("date");
+              setSortOrder("desc");
+            }}
+            className="mt-3 flex items-center gap-2 text-xs text-white/40 transition hover:text-white"
+          >
+            <X size={14} />
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Error */}
@@ -281,6 +407,38 @@ export default function TransactionsPage() {
           ))
         )}
       </div>
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-sm text-white/35">
+            Showing page {pagination.page} of {pagination.totalPages}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={pagination.page === 1}
+              onClick={() => setPage((current) => current - 1)}
+              className="rounded-lg border border-white/[0.08] px-4 py-2 text-sm text-white/60 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Previous
+            </button>
+
+            <span className="px-3 text-sm text-white/60">
+              {pagination.page}
+            </span>
+
+            <button
+              type="button"
+              disabled={pagination.page === pagination.totalPages}
+              onClick={() => setPage((current) => current + 1)}
+              className="rounded-lg border border-white/[0.08] px-4 py-2 text-sm text-white/60 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {showAddExpense && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
