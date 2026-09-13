@@ -20,6 +20,9 @@ import {
   Target,
   Wallet,
   Zap,
+  FolderOpen,
+  Menu,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -40,11 +43,14 @@ const navItems = [
   {
     label: "Overview",
     icon: Home,
-    active: true,
   },
   {
     label: "Transactions",
     icon: Receipt,
+  },
+  {
+    label: "Categories",
+    icon: FolderOpen,
   },
   {
     label: "Budgets",
@@ -79,6 +85,7 @@ export default function DashboardPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const isAuthChecked = useAuthStore((state) => state.isAuthChecked);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -225,6 +232,27 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={item.label}
+                      onClick={() => {
+                        if (item.label === "Overview") {
+                          router.push("/");
+                        }
+
+                        if (item.label === "Transactions") {
+                          router.push("/transactions");
+                        }
+
+                        if (item.label === "Categories") {
+                          router.push("/categories");
+                        }
+
+                        if (item.label === "Budgets") {
+                          router.push("/budgets");
+                        }
+
+                        if (item.label === "Analytics") {
+                          router.push("/analytics");
+                        }
+                      }}
                       className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                         item.active
                           ? "bg-white text-black"
@@ -294,18 +322,6 @@ export default function DashboardPage() {
             {/* Bottom profile */}
 
             <div className="mt-auto">
-              <div className="mb-3 rounded-2xl border border-violet-500/10 bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.04] p-4">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-violet-400" />
-
-                  <span className="text-xs font-medium">Spend smarter</span>
-                </div>
-
-                <p className="mt-2 text-[10px] leading-4 text-white/35">
-                  You're doing better than 78% of users this month.
-                </p>
-              </div>
-
               <div className="flex items-center gap-3 rounded-xl px-2 py-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-pink-500 text-xs font-bold">
                   {initial}
@@ -331,6 +347,14 @@ export default function DashboardPage() {
           {/* TOP BAR */}
 
           <header className="flex h-[76px] items-center justify-between border-b border-white/[0.08] px-6 lg:px-9">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/70 transition hover:bg-white/[0.06] lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
             <div>
               <p className="text-xs text-white/30">
                 {new Date().toLocaleDateString("en-IN", {
@@ -441,14 +465,8 @@ export default function DashboardPage() {
                         <Wallet className="h-4 w-4 text-white/70" />
                       </div>
 
-                      <span className="text-xs text-white/40">
-                        Total balance
-                      </span>
+                      <span className="text-xs text-white/40">Total spent</span>
                     </div>
-
-                    <button className="text-white/30 hover:text-white">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
                   </div>
 
                   <div className="mt-6">
@@ -466,24 +484,21 @@ export default function DashboardPage() {
               <StatCard
                 title="This month"
                 value={`₹${dashboard?.summary.thisMonth.toLocaleString("en-IN") ?? "0"}`}
-                change="Spending"
-                positive
+                subtitle="Current month spending"
                 icon={<ArrowUpRight className="h-4 w-4" />}
               />
 
               <StatCard
                 title="Today"
                 value={`₹${dashboard?.summary.today.toLocaleString("en-IN") ?? "0"}`}
-                change="Today"
-                positive
+                subtitle="Spent today"
                 icon={<CreditCard className="h-4 w-4" />}
               />
 
               <StatCard
                 title="Transactions"
                 value={String(dashboard?.summary.transactionCount ?? 0)}
-                change="This month"
-                positive
+                subtitle="Transactions this month"
                 icon={<Receipt className="h-4 w-4" />}
               />
             </div>
@@ -587,16 +602,9 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="mt-4 flex gap-5">
-                  <div className="flex items-center gap-2 text-[10px] text-white/40">
-                    <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                    Income
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[10px] text-white/40">
-                    <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                    Expenses
-                  </div>
+                <div className="mt-4 flex items-center gap-2 text-[10px] text-white/40">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                  Expenses
                 </div>
               </div>
 
@@ -683,9 +691,15 @@ export default function DashboardPage() {
                         </span>
                       </div>
 
-                      <span className="text-xs font-medium">
-                        {category.percentage}%
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-white/35">
+                          ₹{Number(category.amount).toLocaleString("en-IN")}
+                        </span>
+
+                        <span className="text-xs font-medium">
+                          {category.percentage}%
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -707,7 +721,10 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <button className="text-xs text-white/40 transition hover:text-white">
+                  <button
+                    onClick={() => router.push("/transactions")}
+                    className="text-xs text-white/40 transition hover:text-white"
+                  >
                     View all
                   </button>
                 </div>
@@ -735,10 +752,12 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   ) : dashboard ? (
-                    dashboard.recentExpenses.map((expense) => (
-                      <div
+                    dashboard?.recentExpenses.slice(0, 4).map((expense) => (
+                      <button
                         key={expense.id}
-                        className="flex items-center gap-4 border-b border-white/[0.05] px-6 py-4 last:border-0"
+                        type="button"
+                        onClick={() => router.push("/transactions")}
+                        className="flex w-full items-center gap-4 border-b border-white/[0.05] px-6 py-4 text-left transition hover:bg-white/[0.025] last:border-0"
                       >
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] text-lg">
                           {expense.categoryRef.icon || "💳"}
@@ -758,7 +777,7 @@ export default function DashboardPage() {
                         <span className="text-sm font-medium">
                           -₹{Number(expense.amount).toLocaleString("en-IN")}
                         </span>
-                      </div>
+                      </button>
                     ))
                   ) : null}
                 </div>
@@ -772,7 +791,13 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium">Monthly budget</p>
 
                     <p className="mt-1 text-xs text-white/30">
-                      August spending limit
+                      {new Date(
+                        `${selectedMonth}-01T00:00:00`,
+                      ).toLocaleDateString("en-IN", {
+                        month: "long",
+                        year: "numeric",
+                      })}{" "}
+                      spending limits
                     </p>
                   </div>
 
@@ -801,28 +826,117 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
-
-                {/* Insight */}
-
-                <div className="mt-8 rounded-xl border border-violet-500/10 bg-violet-500/[0.05] p-4">
-                  <div className="flex gap-3">
-                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-400" />
-
-                    <div>
-                      <p className="text-xs font-medium">Smart insight</p>
-
-                      <p className="mt-1 text-[10px] leading-4 text-white/35">
-                        You&apos;re spending 14% less on food this month. Keep
-                        it up — you&apos;re on track to save ₹3,200.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         </main>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          />
+
+          {/* Sidebar */}
+          <aside className="relative flex h-full w-[280px] flex-col border-r border-white/[0.08] bg-[#090909] p-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-semibold tracking-tight">
+                  SpendWise
+                </p>
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/30">
+                  Finance OS
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/[0.06] hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="mt-8 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+
+                      if (item.label === "Overview") router.push("/");
+                      if (item.label === "Transactions") {
+                        router.push("/transactions");
+                      }
+                      if (item.label === "Categories") {
+                        router.push("/categories");
+                      }
+                      if (item.label === "Budgets") {
+                        router.push("/budgets");
+                      }
+                      if (item.label === "Analytics") {
+                        router.push("/analytics");
+                      }
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-white/50 transition hover:bg-white/[0.05] hover:text-white"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mt-6 border-t border-white/[0.06] pt-6">
+              {accountItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      router.push("/settings");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-white/50 transition hover:bg-white/[0.05] hover:text-white"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-auto border-t border-white/[0.06] pt-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.08] text-sm font-medium">
+                  {initial}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {user?.name || "User"}
+                  </p>
+                  <p className="truncate text-xs text-white/30">
+                    {user?.email || ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
@@ -832,43 +946,27 @@ export default function DashboardPage() {
 function StatCard({
   title,
   value,
-  change,
-  positive,
+  subtitle,
   icon,
 }: {
   title: string;
   value: string;
-  change: string;
-  positive: boolean;
+  subtitle: string;
   icon: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#0b0b0b] p-6 transition hover:border-white/[0.14]">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05]">
-            {icon}
-          </div>
-
-          <span className="text-xs text-white/40">{title}</span>
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05] text-white/60">
+          {icon}
         </div>
 
-        <MoreHorizontal className="h-4 w-4 text-white/20" />
+        <span className="text-xs text-white/40">{title}</span>
       </div>
 
       <p className="mt-6 text-2xl font-semibold tracking-tight">{value}</p>
 
-      <div className="mt-2 flex items-center gap-1.5">
-        <span
-          className={`text-[10px] font-medium ${
-            positive ? "text-emerald-400" : "text-rose-400"
-          }`}
-        >
-          {change}
-        </span>
-
-        <span className="text-[10px] text-white/25">this month</span>
-      </div>
+      <p className="mt-2 text-[10px] text-white/25">{subtitle}</p>
     </div>
   );
 }
