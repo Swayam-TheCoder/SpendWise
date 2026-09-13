@@ -26,6 +26,7 @@ import {
   getCategories,
   type Category,
 } from "@/services/category.service";
+import { useDashboardStore } from "@/features/dashboard/dashboard.store";
 
 export default function BudgetsPage() {
   const isAuthenticated = useAuthStore(
@@ -43,6 +44,10 @@ export default function BudgetsPage() {
   const [saving, setSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  const triggerDashboardRefresh = useDashboardStore(
+  (state) => state.triggerRefresh,
+);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -147,66 +152,71 @@ export default function BudgetsPage() {
   };
 
   const handleSubmit = async () => {
-    const amount = Number(form.amount);
+  const amount = Number(form.amount);
 
-    if (!editingBudget && !form.categoryId) {
-      setError("Please select a category.");
-      return;
+  if (!editingBudget && !form.categoryId) {
+    setError("Please select a category.");
+    return;
+  }
+
+  if (!amount || amount <= 0) {
+    setError("Please enter a valid budget amount.");
+    return;
+  }
+
+  try {
+    setSaving(true);
+    setError(null);
+
+    if (editingBudget) {
+      await updateBudget(
+        editingBudget.id,
+        amount,
+      );
+    } else {
+      await createBudget({
+        categoryId: form.categoryId,
+        amount,
+        month: selectedMonth,
+      });
     }
 
-    if (!amount || amount <= 0) {
-      setError("Please enter a valid budget amount.");
-      return;
-    }
+    // Refresh dashboard data
+    triggerDashboardRefresh();
 
-    try {
-      setSaving(true);
-      setError(null);
+    setShowModal(false);
+    await loadData();
+  } catch (error: any) {
+    console.error("Failed to save budget:", error);
 
-      if (editingBudget) {
-        await updateBudget(
-          editingBudget.id,
-          amount,
-        );
-      } else {
-        await createBudget({
-          categoryId: form.categoryId,
-          amount,
-          month: selectedMonth,
-        });
-      }
+    const message =
+      error?.response?.data?.message ||
+      "Unable to save budget.";
 
-      setShowModal(false);
-
-      await loadData();
-    } catch (error: any) {
-      console.error("Failed to save budget:", error);
-
-      const message =
-        error?.response?.data?.message ||
-        "Unable to save budget.";
-
-      setError(message);
-    } finally {
-      setSaving(false);
-    }
-  };
+    setError(message);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDelete = async (budget: Budget) => {
-    const confirmed = window.confirm(
-      `Delete ${budget.category.name} budget for ${monthLabel}?`,
-    );
+  const confirmed = window.confirm(
+    `Delete ${budget.category.name} budget for ${monthLabel}?`,
+  );
 
-    if (!confirmed) return;
+  if (!confirmed) return;
 
-    try {
-      await deleteBudget(budget.id);
-      await loadData();
-    } catch (error) {
-      console.error("Failed to delete budget:", error);
-      alert("Unable to delete budget.");
-    }
-  };
+  try {
+    await deleteBudget(budget.id);
+
+    triggerDashboardRefresh();
+
+    await loadData();
+  } catch (error) {
+    console.error("Failed to delete budget:", error);
+    alert("Unable to delete budget.");
+  }
+};
 
   if (!isAuthChecked || loading) {
     return (

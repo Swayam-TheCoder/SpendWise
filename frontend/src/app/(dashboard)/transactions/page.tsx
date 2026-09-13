@@ -21,6 +21,7 @@ import {
 } from "@/services/expense.service";
 
 import { getCategories, type Category } from "@/services/category.service";
+import { useDashboardStore } from "@/features/dashboard/dashboard.store";
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -37,6 +38,10 @@ export default function TransactionsPage() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const triggerDashboardRefresh = useDashboardStore(
+    (state) => state.triggerRefresh,
+  );
 
   const [page, setPage] = useState(1);
 
@@ -152,6 +157,8 @@ export default function TransactionsPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteExpense(id);
+
+      triggerDashboardRefresh();
 
       // If this was the last item on the current page,
       // move back to the previous page.
@@ -494,6 +501,9 @@ export default function TransactionsPage() {
                   } else {
                     await createExpense(expenseData);
                   }
+
+                  // Refresh dashboard
+                  triggerDashboardRefresh();
 
                   setShowAddExpense(false);
                   setEditingExpense(null);
