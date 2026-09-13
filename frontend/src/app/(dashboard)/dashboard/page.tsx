@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(" ")[0] || "there";
 
   const initial = user?.name?.charAt(0).toUpperCase() || "U";
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -408,44 +409,71 @@ export default function DashboardPage() {
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-400" />
               </button>
 
-              <label className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs text-white/60 transition hover:bg-white/[0.05] sm:flex">
-                <span>
-                  {new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString(
-                    "en-IN",
-                    {
+              <div className="relative hidden sm:block">
+                <button
+                  type="button"
+                  onClick={() => setMonthDropdownOpen((open) => !open)}
+                  className="flex min-w-[150px] items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-xs text-white/70 transition hover:border-white/[0.14] hover:bg-white/[0.06]"
+                >
+                  <span>
+                    {new Date(
+                      `${selectedMonth}-01T00:00:00`,
+                    ).toLocaleDateString("en-IN", {
                       month: "long",
                       year: "numeric",
-                    },
-                  )}
-                </span>
+                    })}
+                  </span>
 
-                <ChevronDown className="h-3 w-3" />
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-white/40 transition-transform ${
+                      monthDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-                <select
-                  value={selectedMonth}
-                  onChange={(event) => setSelectedMonth(event.target.value)}
-                  className="absolute h-0 w-0 opacity-0"
-                  aria-label="Select month"
-                >
-                  {Array.from({ length: 12 }, (_, index) => {
-                    const date = new Date();
-                    date.setMonth(date.getMonth() - index);
+                {monthDropdownOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-1.5 shadow-2xl shadow-black/40">
+                    {Array.from({ length: 12 }, (_, index) => {
+                      const date = new Date();
+                      date.setDate(1);
+                      date.setMonth(date.getMonth() - index);
 
-                    const value = `${date.getFullYear()}-${String(
-                      date.getMonth() + 1,
-                    ).padStart(2, "0")}`;
+                      const value = `${date.getFullYear()}-${String(
+                        date.getMonth() + 1,
+                      ).padStart(2, "0")}`;
 
-                    return (
-                      <option key={value} value={value}>
-                        {date.toLocaleDateString("en-IN", {
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
+                      const isSelected = selectedMonth === value;
+
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMonth(value);
+                            setMonthDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs transition ${
+                            isSelected
+                              ? "bg-white/[0.08] text-white"
+                              : "text-white/50 hover:bg-white/[0.05] hover:text-white"
+                          }`}
+                        >
+                          <span>
+                            {date.toLocaleDateString("en-IN", {
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+
+                          {isSelected && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <button
                 className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-white/90"

@@ -34,6 +34,7 @@ export default function BudgetsPage() {
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -237,36 +238,88 @@ export default function BudgetsPage() {
           <div className="flex flex-wrap items-center gap-3">
             {/* Month selector */}
             <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
-
-              <select
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-                className="appearance-none rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-10 text-sm text-white outline-none transition hover:bg-white/[0.06]"
+              <button
+                type="button"
+                onClick={() => setMonthDropdownOpen((open) => !open)}
+                className="group flex min-w-[190px] items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-left text-sm text-white outline-none transition-all duration-200 hover:border-violet-400/30 hover:bg-white/[0.07] focus:border-violet-400/50"
               >
-                {Array.from({ length: 12 }, (_, index) => {
-                  const date = new Date();
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300">
+                  <CalendarDays className="h-4 w-4" />
+                </span>
 
-                  date.setMonth(date.getMonth() - index);
+                <span className="flex-1">
+                  <span className="block text-[10px] uppercase tracking-[0.18em] text-white/30">
+                    Viewing
+                  </span>
 
-                  const value = `${date.getFullYear()}-${String(
-                    date.getMonth() + 1,
-                  ).padStart(2, "0")}`;
+                  <span className="block font-medium text-white/85">
+                    {new Date(
+                      `${selectedMonth}-01T00:00:00`,
+                    ).toLocaleDateString("en-IN", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </span>
 
-                  const label = date.toLocaleDateString("en-IN", {
-                    month: "long",
-                    year: "numeric",
-                  });
+                <ChevronDown
+                  className={`h-4 w-4 text-white/35 transition-transform duration-200 ${
+                    monthDropdownOpen ? "rotate-180 text-violet-300" : ""
+                  }`}
+                />
+              </button>
 
-                  return (
-                    <option key={value} value={value} className="bg-[#111]">
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
+              {monthDropdownOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111111] p-2 shadow-2xl shadow-black/50">
+                  <div className="mb-1 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
+                    Select month
+                  </div>
 
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                  <div className="max-h-80 overflow-y-auto">
+                    {Array.from({ length: 12 }, (_, index) => {
+                      const date = new Date();
+
+                      date.setDate(1);
+                      date.setMonth(date.getMonth() - index);
+
+                      const value = `${date.getFullYear()}-${String(
+                        date.getMonth() + 1,
+                      ).padStart(2, "0")}`;
+
+                      const label = date.toLocaleDateString("en-IN", {
+                        month: "long",
+                        year: "numeric",
+                      });
+
+                      const isSelected = selectedMonth === value;
+
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMonth(value);
+                            setMonthDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition-all duration-150 ${
+                            isSelected
+                              ? "bg-violet-500/15 text-violet-200"
+                              : "text-white/55 hover:bg-white/[0.06] hover:text-white"
+                          }`}
+                        >
+                          <span>{label}</span>
+
+                          {isSelected && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-400/20 text-violet-300">
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button

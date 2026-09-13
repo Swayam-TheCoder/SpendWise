@@ -493,7 +493,7 @@ export const googleCallbackController = async (req, res) => {
     });
 
     // Store refresh token in HttpOnly cookie
-    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
     // Don't put access token in URL
     return res.redirect(`${process.env.FRONTEND_URL}/auth/google/success`);
