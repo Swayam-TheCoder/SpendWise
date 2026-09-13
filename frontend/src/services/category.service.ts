@@ -22,3 +22,22 @@ export const createCategory = async (data: {
 
   return response.data.data.category;
 };
+
+export const updateCategory = async (
+  id: string,
+  data: {
+    name?: string;
+    icon?: string;
+    color?: string;
+  },
+): Promise<Category> => {
+  const response = await apiClient.patch(`/categories/${id}`, data);
+
+  return response.data.data.category;
+};
+
+export const deleteCategory = async (id: string) => {
+  const response = await apiClient.delete(`/categories/${id}`);
+
+  return response.data;
+};
