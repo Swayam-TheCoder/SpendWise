@@ -27,7 +27,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import {
   Area,
@@ -43,34 +43,14 @@ import {
 } from "recharts";
 
 const navItems = [
-  {
-    label: "Overview",
-    icon: Home,
-  },
-  {
-    label: "Transactions",
-    icon: Receipt,
-  },
-  {
-    label: "Categories",
-    icon: FolderOpen,
-  },
-  {
-    label: "Budgets",
-    icon: Target,
-  },
-  {
-    label: "Analytics",
-    icon: PieChart,
-  },
+  { label: "Overview", icon: Home, path: "/" },
+  { label: "Transactions", icon: Receipt, path: "/transactions" },
+  { label: "Categories", icon: FolderOpen, path: "/categories" },
+  { label: "Budgets", icon: Target, path: "/budgets" },
+  { label: "Analytics", icon: PieChart, path: "/analytics" },
 ];
 
-const accountItems = [
-  {
-    label: "Settings",
-    icon: Settings,
-  },
-];
+const accountItems = [{ label: "Settings", icon: Settings, path: "/settings" }];
 
 const mobileSlides = [
   {
@@ -107,6 +87,7 @@ export default function DashboardPage() {
   const initial = user?.name?.charAt(0).toUpperCase() || "U";
 
   const router = useRouter();
+  const pathname = usePathname();
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -859,98 +840,92 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* ================= MOBILE APP ================= */}
-<div className="mt-4">
-  <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]">
-    <div className="relative min-h-[260px] p-6 sm:p-8">
+            <div className="mt-4">
+              <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]">
+                <div className="relative min-h-[260px] p-6 sm:p-8">
+                  {/* Background glow */}
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
 
-      {/* Background glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
+                  <div className="relative z-10 flex h-full flex-col justify-between">
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="max-w-xl">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-violet-400/80">
+                          {mobileSlides[mobileSlide].eyebrow}
+                        </p>
 
-      <div className="relative z-10 flex h-full flex-col justify-between">
+                        <h3 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                          {mobileSlides[mobileSlide].title}
+                        </h3>
 
-        <div className="flex items-start justify-between gap-6">
-          <div className="max-w-xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-violet-400/80">
-              {mobileSlides[mobileSlide].eyebrow}
-            </p>
+                        <p className="mt-4 max-w-lg text-sm leading-6 text-white/40">
+                          {mobileSlides[mobileSlide].description}
+                        </p>
+                      </div>
 
-            <h3 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {mobileSlides[mobileSlide].title}
-            </h3>
+                      <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.05] sm:flex">
+                        {(() => {
+                          const Icon = mobileSlides[mobileSlide].icon;
 
-            <p className="mt-4 max-w-lg text-sm leading-6 text-white/40">
-              {mobileSlides[mobileSlide].description}
-            </p>
-          </div>
+                          return <Icon className="h-6 w-6 text-white/70" />;
+                        })()}
+                      </div>
+                    </div>
 
-          <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.05] sm:flex">
-            {(() => {
-              const Icon = mobileSlides[mobileSlide].icon;
+                    <div className="mt-8 flex items-center justify-between">
+                      {/* Dots */}
+                      <div className="flex items-center gap-2">
+                        {mobileSlides.map((_, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setMobileSlide(index)}
+                            className={`h-1.5 rounded-full transition-all ${
+                              index === mobileSlide
+                                ? "w-7 bg-white"
+                                : "w-1.5 bg-white/20 hover:bg-white/40"
+                            }`}
+                            aria-label={`Go to slide ${index + 1}`}
+                          />
+                        ))}
+                      </div>
 
-              return <Icon className="h-6 w-6 text-white/70" />;
-            })()}
-          </div>
-        </div>
+                      {/* Arrows */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMobileSlide(
+                              (current) =>
+                                (current - 1 + mobileSlides.length) %
+                                mobileSlides.length,
+                            )
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                          aria-label="Previous slide"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
 
-        <div className="mt-8 flex items-center justify-between">
-
-          {/* Dots */}
-          <div className="flex items-center gap-2">
-            {mobileSlides.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setMobileSlide(index)}
-                className={`h-1.5 rounded-full transition-all ${
-                  index === mobileSlide
-                    ? "w-7 bg-white"
-                    : "w-1.5 bg-white/20 hover:bg-white/40"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-
-          {/* Arrows */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setMobileSlide(
-                  (current) =>
-                    (current - 1 + mobileSlides.length) %
-                    mobileSlides.length,
-                )
-              }
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setMobileSlide(
-                  (current) =>
-                    (current + 1) % mobileSlides.length,
-                )
-              }
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-            
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMobileSlide(
+                              (current) => (current + 1) % mobileSlides.length,
+                            )
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                          aria-label="Next slide"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </main>
       </div>
@@ -989,32 +964,32 @@ export default function DashboardPage() {
             <nav className="mt-8 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const isActive = pathname === item.path;
 
                 return (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-
-                      if (item.label === "Overview") router.push("/");
-                      if (item.label === "Transactions") {
-                        router.push("/transactions");
-                      }
-                      if (item.label === "Categories") {
-                        router.push("/categories");
-                      }
-                      if (item.label === "Budgets") {
-                        router.push("/budgets");
-                      }
-                      if (item.label === "Analytics") {
-                        router.push("/analytics");
-                      }
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-white/50 transition hover:bg-white/[0.05] hover:text-white"
+                    onClick={() => router.push(item.path)}
+                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+                      isActive
+                        ? "bg-white/[0.08] text-white"
+                        : "text-white/40 hover:bg-white/[0.05] hover:text-white"
+                    }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon
+                      className={`h-4 w-4 ${
+                        isActive
+                          ? "text-white"
+                          : "text-white/35 group-hover:text-white/70"
+                      }`}
+                    />
+
+                    <span>{item.label}</span>
+
+                    {isActive && (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                    )}
                   </button>
                 );
               })}
