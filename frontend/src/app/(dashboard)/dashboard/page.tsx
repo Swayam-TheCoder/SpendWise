@@ -289,7 +289,7 @@ export default function DashboardPage() {
                         }
                       }}
                       className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                        item.active
+                        pathname === item.path
                           ? "bg-white text-black"
                           : "text-white/50 hover:bg-white/[0.05] hover:text-white"
                       }`}
@@ -298,7 +298,7 @@ export default function DashboardPage() {
 
                       <span>{item.label}</span>
 
-                      {item.active && (
+                      {pathname === item.path && (
                         <span className="ml-auto h-1.5 w-1.5 rounded-full bg-black" />
                       )}
                     </button>
