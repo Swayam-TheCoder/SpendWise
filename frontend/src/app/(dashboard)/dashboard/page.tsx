@@ -41,6 +41,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Budget, getBudgets } from "@/services/budget.service";
+import { useDashboardStore } from "@/features/dashboard/dashboard.store";
 
 const navItems = [
   { label: "Overview", icon: Home, path: "/" },
@@ -99,6 +101,22 @@ export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSlide, setMobileSlide] = useState(0);
 
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.budget, 0);
+
+  const totalBudgetSpent = budgets.reduce(
+    (sum, budget) => sum + budget.spent,
+    0,
+  );
+
+  const totalBudgetRemaining = Math.max(totalBudget - totalBudgetSpent, 0);
+
+  const budgetPercentage =
+    totalBudget > 0 ? Math.round((totalBudgetSpent / totalBudget) * 100) : 0;
+
+  const refreshKey = useDashboardStore((state) => state.refreshKey);
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
 
@@ -118,9 +136,13 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-        const data = await getDashboard(selectedMonth);
+        const [dashboardData, budgetData] = await Promise.all([
+          getDashboard(selectedMonth),
+          getBudgets(selectedMonth),
+        ]);
 
-        setDashboard(data);
+        setDashboard(dashboardData);
+        setBudgets(budgetData);
       } catch (error) {
         console.error("Failed to load dashboard:", error);
         setError("Something went wrong while fetching your data.");
@@ -130,7 +152,7 @@ export default function DashboardPage() {
     };
 
     loadDashboard();
-  }, [isAuthChecked, isAuthenticated, selectedMonth]);
+  }, [isAuthChecked, isAuthenticated, selectedMonth, refreshKey]);
 
   if (loading) {
     return (
@@ -797,47 +819,88 @@ export default function DashboardPage() {
 
               {/* Budget */}
 
-              <div className="rounded-2xl border border-white/[0.08] bg-[#0b0b0b] p-6">
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium">Monthly budget</p>
+                    <p className="text-sm text-white/40">Monthly budget</p>
 
-                    <p className="mt-1 text-xs text-white/30">
-                      {new Date(
-                        `${selectedMonth}-01T00:00:00`,
-                      ).toLocaleDateString("en-IN", {
-                        month: "long",
-                        year: "numeric",
-                      })}{" "}
-                      spending limits
-                    </p>
+                    <h3 className="mt-1 text-lg font-medium text-white">
+                      {selectedMonth}
+                    </h3>
                   </div>
 
-                  <Target className="h-4 w-4 text-violet-400" />
+                  <Wallet className="h-5 w-5 text-white/30" />
                 </div>
 
-                <div className="mt-8">
-                  <div className="flex h-full flex-col justify-between">
-                    <div>
-                      <p className="text-sm text-white/40">Monthly budget</p>
-
-                      <h3 className="mt-3 text-2xl font-semibold">
-                        Coming soon
-                      </h3>
-
-                      <p className="mt-2 text-sm text-white/30">
-                        Set spending limits for your categories.
-                      </p>
-                    </div>
+                {budgets.length === 0 ? (
+                  <div className="mt-6">
+                    <p className="text-sm text-white/45">
+                      No budgets set for this month.
+                    </p>
 
                     <button
+                      type="button"
                       onClick={() => router.push("/budgets")}
-                      className="mt-6 w-fit rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 transition hover:bg-white/[0.08]"
+                      className="mt-4 text-sm text-white underline underline-offset-4 transition hover:text-white/70"
                     >
-                      Create a budget
+                      Create a budget →
                     </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-6">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-2xl font-semibold text-white">
+                          ₹{totalBudgetSpent.toLocaleString("en-IN")}
+                        </p>
+
+                        <p className="mt-1 text-xs text-white/35">
+                          of ₹{totalBudget.toLocaleString("en-IN")} budget
+                        </p>
+                      </div>
+
+                      <span className="text-sm text-white/45">
+                        {budgetPercentage}%
+                      </span>
+                    </div>
+
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          budgetPercentage >= 100
+                            ? "bg-red-400"
+                            : budgetPercentage >= 80
+                              ? "bg-yellow-400"
+                              : "bg-emerald-400"
+                        }`}
+                        style={{
+                          width: `${Math.min(budgetPercentage, 100)}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <p className="text-xs text-white/35">
+                        {budgetPercentage >= 100
+                          ? `₹${Math.max(
+                              totalBudgetSpent - totalBudget,
+                              0,
+                            ).toLocaleString("en-IN")} over budget`
+                          : `₹${totalBudgetRemaining.toLocaleString(
+                              "en-IN",
+                            )} remaining`}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => router.push("/budgets")}
+                        className="text-xs text-white/50 transition hover:text-white"
+                      >
+                        Manage →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
