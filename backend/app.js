@@ -16,9 +16,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use(cookieParser());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://spend-wise-nine-sooty.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
