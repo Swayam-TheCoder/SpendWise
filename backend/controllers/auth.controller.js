@@ -25,7 +25,6 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 import argon2 from "argon2";
 
-
 const isProduction = process.env.NODE_ENV === "production";
 
 const refreshCookieOptions = {
@@ -35,7 +34,6 @@ const refreshCookieOptions = {
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
-
 
 export const signupController = async (req, res) => {
   try {
@@ -167,6 +165,9 @@ export const getMeController = async (req, res) => {
 
 export const refreshController = async (req, res) => {
   try {
+
+    console.log("REFRESH COOKIE:", req.cookies?.refreshToken ? "PRESENT" : "MISSING");
+    console.log("ALL COOKIES:", req.cookies);
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
@@ -224,12 +225,7 @@ export const logoutController = async (req, res) => {
 
     await logout(refreshToken);
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
-      path: "/",
-    });
+    res.clearCookie("refreshToken", refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
