@@ -188,7 +188,7 @@ export const refreshController = async (req, res) => {
     });
   } catch (error) {
     if (error.message === "Refresh token reuse detected") {
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", refreshCookieOptions);
 
       return res.status(401).json({
         success: false,
@@ -201,7 +201,7 @@ export const refreshController = async (req, res) => {
       error.message === "Session not found" ||
       error.message === "Session expired"
     ) {
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", refreshCookieOptions);
 
       return res.status(401).json({
         success: false,
@@ -436,11 +436,7 @@ export const logoutAllController = async (req, res) => {
   try {
     await logoutAllSessions(req.userId);
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+    res.clearCookie("refreshToken", refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
@@ -524,11 +520,7 @@ export const deleteAccountController = async (req, res) => {
       },
     });
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+    res.clearCookie("refreshToken", refreshCookieOptions);
 
     return res.status(200).json({
       success: true,
