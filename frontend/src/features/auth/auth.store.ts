@@ -25,6 +25,8 @@ interface AuthState {
   setAuth: (accessToken: string, user?: User | null) => void;
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
 export const useAuthStore = create<AuthState>((set) => ({
   // =========================
   // INITIAL STATE
@@ -84,10 +86,32 @@ export const useAuthStore = create<AuthState>((set) => ({
   // =========================
 
   refresh: async () => {
-  try {
-    const response = await authApi.refresh();
+  if (refreshPromise) {
+    return refreshPromise;
+  }
 
-    if (!response?.accessToken) {
+  refreshPromise = (async () => {
+    try {
+      const response = await authApi.refresh();
+
+      if (!response?.accessToken) {
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+        });
+
+        return false;
+      }
+
+      set({
+        accessToken: response.accessToken,
+        user: response.user ?? null,
+        isAuthenticated: true,
+      });
+
+      return true;
+    } catch {
       set({
         user: null,
         accessToken: null,
@@ -95,28 +119,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
 
       return false;
+    } finally {
+      refreshPromise = null;
+      set({ isAuthChecked: true });
     }
+  })();
 
-    set({
-      accessToken: response.accessToken,
-      user: response.user ?? null,
-      isAuthenticated: true,
-    });
-
-    return true;
-  } catch {
-    set({
-      user: null,
-      accessToken: null,
-      isAuthenticated: false,
-    });
-
-    return false;
-  } finally {
-    set({
-      isAuthChecked: true,
-    });
-  }
+  return refreshPromise;
 },
 
   // =========================

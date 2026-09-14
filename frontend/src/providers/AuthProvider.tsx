@@ -14,30 +14,24 @@ export default function AuthProvider({
   const [checkingAuth, setCheckingAuth] = useState(true);
   const initialized = useRef(false);
 
-  useEffect(() => {
-    if (initialized.current) return;
+useEffect(() => {
+  if (initialized.current) return;
 
-    initialized.current = true;
+  initialized.current = true;
 
-    configureApiAuth({
-      getAccessToken: () => useAuthStore.getState().accessToken,
+  configureApiAuth({
+    getAccessToken: () => useAuthStore.getState().accessToken,
 
-      setAuth: (accessToken, user) =>
-        useAuthStore.getState().setAuth(accessToken, user),
+    setAuth: (accessToken, user) =>
+      useAuthStore.getState().setAuth(accessToken, user),
 
-      clearAuth: () => useAuthStore.getState().clearAuth(),
-    });
+    clearAuth: () => useAuthStore.getState().clearAuth(),
+  });
 
-    const checkAuth = async () => {
-      try {
-        await refresh();
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-
-    checkAuth();
-  }, [refresh]);
+  refresh().finally(() => {
+    setCheckingAuth(false);
+  });
+}, [refresh]);
 
   if (checkingAuth) {
     return (
