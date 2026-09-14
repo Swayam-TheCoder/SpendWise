@@ -25,10 +25,13 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 import argon2 from "argon2";
 
+
+const isProduction = process.env.NODE_ENV === "production";
+
 const refreshCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
@@ -223,8 +226,9 @@ export const logoutController = async (req, res) => {
 
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
     });
 
     return res.status(200).json({
