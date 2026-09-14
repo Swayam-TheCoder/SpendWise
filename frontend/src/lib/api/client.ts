@@ -12,11 +12,10 @@ type AuthConfig = {
   getAccessToken: () => string | null;
   setAuth: (accessToken: string, user?: any) => void;
   clearAuth: () => void;
+  refresh: () => Promise<boolean>;
 };
 
 let authConfig: AuthConfig | null = null;
-
-let refreshPromise: Promise<string | null> | null = null;
 
 export function configureApiAuth(config: AuthConfig) {
   authConfig = config;
@@ -52,17 +51,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    /**
-     * Never try to refresh the refresh request itself.
-     */
+    // Never refresh the refresh request itself
     if (originalRequest.url?.includes("/auth/refresh")) {
       authConfig?.clearAuth();
       return Promise.reject(error);
     }
 
-    /**
-     * Don't retry the same request more than once.
-     */
+    // Don't retry the same request more than once
     if (originalRequest._retry) {
       authConfig?.clearAuth();
       return Promise.reject(error);
@@ -71,49 +66,36 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      /**
-       * If another request is already refreshing,
-       * wait for that refresh instead of sending another one.
-       */
-      if (!refreshPromise) {
-        refreshPromise = apiClient
-          .post("/auth/refresh")
-          .then((response) => {
-            const accessToken = response.data?.accessToken;
-            const user = response.data?.user;
-
-            if (!accessToken) {
-              throw new Error("Unable to refresh access token");
-            }
-
-            authConfig?.setAuth(accessToken, user);
-
-            return accessToken;
-          })
-          .catch((error) => {
-            console.error(
-              "REFRESH FAILED:",
-              error.response?.status,
-              error.response?.data,
-            );
-
-            authConfig?.clearAuth();
-            return null;
-          })
-          .finally(() => {
-            refreshPromise = null;
-          });
-      }
-
-      const newAccessToken = await refreshPromise;
-
-      if (!newAccessToken) {
+      if (!authConfig) {
         return Promise.reject(error);
       }
 
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      /**
+       * IMPORTANT:
+       * Use Zustand's shared refresh function.
+       *
+       * This prevents multiple refresh requests
+       * from rotating the same refresh token.
+       */
+      const refreshed = await authConfig.refresh();
+
+      if (!refreshed) {
+        authConfig.clearAuth();
+        return Promise.reject(error);
+      }
+
+      const newAccessToken = authConfig.getAccessToken();
+
+      if (!newAccessToken) {
+        authConfig.clearAuth();
+        return Promise.reject(error);
+      }
+
+      originalRequest.headers.Authorization =
+        `Bearer ${newAccessToken}`;
 
       return apiClient(originalRequest);
+
     } catch {
       authConfig?.clearAuth();
       return Promise.reject(error);
