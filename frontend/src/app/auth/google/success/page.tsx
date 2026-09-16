@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/auth.store";
 
@@ -10,14 +10,24 @@ export default function GoogleSuccessPage() {
   const refresh = useAuthStore((state) => state.refresh);
 
   const [error, setError] = useState(false);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
-    const authenticate = async () => {
-      const success = await refresh();
+    if (hasStarted.current) return;
 
-      if (success) {
-        router.replace("/dashboard");
-      } else {
+    hasStarted.current = true;
+
+    const authenticate = async () => {
+      try {
+        const success = await refresh();
+
+        if (success) {
+          router.replace("/dashboard");
+        } else {
+          setError(true);
+        }
+      } catch (error) {
+        console.error("Google login completion failed:", error);
         setError(true);
       }
     };
@@ -29,9 +39,11 @@ export default function GoogleSuccessPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
         <div className="text-center">
-          <h1 className="text-xl font-semibold">
-            Google login failed
-          </h1>
+          <h1 className="text-xl font-semibold">Google login failed</h1>
+
+          <p className="mt-2 text-sm text-white/60">
+            Please try signing in again.
+          </p>
 
           <button
             onClick={() => router.replace("/login")}
