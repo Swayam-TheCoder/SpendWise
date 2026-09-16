@@ -163,58 +163,58 @@ export const getMeController = async (req, res) => {
   }
 };
 
-export const refreshController = async (req, res) => {
-  try {
-    const refreshToken = req.cookies?.refreshToken;
+  export const refreshController = async (req, res) => {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
 
-    if (!refreshToken) {
-      return res.status(401).json({
+      if (!refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Refresh token is required",
+        });
+      }
+
+      const result = await refreshSession(refreshToken);
+
+      res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
+
+      return res.status(200).json({
+        success: true,
+        message: "Token refreshed successfully",
+        user: result.user,
+        accessToken: result.accessToken,
+      });
+    } catch (error) {
+      if (error.message === "Refresh token reuse detected") {
+        res.clearCookie("refreshToken", refreshCookieOptions);
+
+        return res.status(401).json({
+          success: false,
+          message: "Refresh token reuse detected. Please login again.",
+        });
+      }
+
+      if (
+        error.message === "Invalid refresh token" ||
+        error.message === "Session not found" ||
+        error.message === "Session expired"
+      ) {
+        res.clearCookie("refreshToken", refreshCookieOptions);
+
+        return res.status(401).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      console.error("Refresh error:", error);
+
+      return res.status(500).json({
         success: false,
-        message: "Refresh token is required",
+        message: "Unable to refresh session",
       });
     }
-
-    const result = await refreshSession(refreshToken);
-
-    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
-
-    return res.status(200).json({
-      success: true,
-      message: "Token refreshed successfully",
-      user: result.user,
-      accessToken: result.accessToken,
-    });
-  } catch (error) {
-    if (error.message === "Refresh token reuse detected") {
-      res.clearCookie("refreshToken", refreshCookieOptions);
-
-      return res.status(401).json({
-        success: false,
-        message: "Refresh token reuse detected. Please login again.",
-      });
-    }
-
-    if (
-      error.message === "Invalid refresh token" ||
-      error.message === "Session not found" ||
-      error.message === "Session expired"
-    ) {
-      res.clearCookie("refreshToken", refreshCookieOptions);
-
-      return res.status(401).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
-    console.error("Refresh error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to refresh session",
-    });
-  }
-};
+  };
 
 export const logoutController = async (req, res) => {
   try {
