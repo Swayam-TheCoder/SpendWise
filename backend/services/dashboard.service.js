@@ -31,7 +31,7 @@ export const getDashboardSummary = async (userId, month) => {
     monthlySpentResult,
     todaySpentResult,
     transactionCount,
-  ] = await prisma.$transaction([
+  ] = await Promise.all([
     prisma.expense.aggregate({
       where: {
         userId,
@@ -81,13 +81,9 @@ export const getDashboardSummary = async (userId, month) => {
   return {
     totalSpent: Number(totalSpentResult._sum.amount || 0),
 
-    thisMonth: Number(
-      monthlySpentResult._sum.amount || 0,
-    ),
+    thisMonth: Number(monthlySpentResult._sum.amount || 0),
 
-    today: isCurrentMonth
-      ? Number(todaySpentResult._sum.amount || 0)
-      : 0,
+    today: isCurrentMonth ? Number(todaySpentResult._sum.amount || 0) : 0,
 
     transactionCount,
   };

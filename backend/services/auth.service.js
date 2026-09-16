@@ -353,7 +353,6 @@ export const forgotPassword = async (email) => {
   }
 
   const resetToken = generateVerificationToken();
-  console.log("Reset Token:", resetToken); // Log the reset token for debugging // logs
 
   const tokenHash = hashToken(resetToken);
 
@@ -386,8 +385,6 @@ export const resetPassword = async ({ token, password }) => {
       tokenHash,
     },
   });
-
-  console.log("Reset Token:", resetToken); // Log the reset token for debugging //logs
 
   if (!resetToken) {
     throw new Error("Invalid or expired reset token");

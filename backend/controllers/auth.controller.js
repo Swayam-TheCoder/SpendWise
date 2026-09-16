@@ -165,9 +165,6 @@ export const getMeController = async (req, res) => {
 
 export const refreshController = async (req, res) => {
   try {
-
-    console.log("REFRESH COOKIE:", req.cookies?.refreshToken ? "PRESENT" : "MISSING");
-    console.log("ALL COOKIES:", req.cookies);
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
