@@ -20,6 +20,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:3000",
   "https://spend-wise-nine-sooty.vercel.app",
+  "https://spend-wise-git-bugfix-something-hello-e803509d.vercel.app"
 ];
 
 app.use(
