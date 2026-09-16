@@ -9,10 +9,19 @@ import budgetRoutes from "./routes/budget.routes.js";
 
 import cors from "cors";
 import passport from "./config/passport.js";
+
+import path from "path";
+import { fileURLToPath } from "url";
+
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.set("trust proxy", 1);
 // Middlewares
+
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
