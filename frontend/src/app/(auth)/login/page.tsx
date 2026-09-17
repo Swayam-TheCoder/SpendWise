@@ -145,6 +145,7 @@ export default function LoginPage() {
         </div>
 
         {/* Google */}
+        <p> Google service is currently unavailable </p>
         <button
           type="button"
           onClick={authApi.googleLogin}
