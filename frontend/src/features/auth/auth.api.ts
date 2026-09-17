@@ -62,7 +62,7 @@ export const authApi = {
   },
 
   googleLogin() {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/start`;
   },
 
   async deleteAccount() {

@@ -64,11 +64,11 @@ router.delete("/sessions/:sessionId", authenticate, revokeSessionController);
 router.post("/logout-all", authenticate, logoutAllController);
 
 router.get(
-  "/google",
+  "/google/start",
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
-  }),
+  })
 );
 
 router.get(
