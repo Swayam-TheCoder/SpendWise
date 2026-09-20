@@ -61,8 +61,12 @@ export const authApi = {
     return response.data;
   },
 
-  googleLogin() {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  async googleLogin(credential: string) {
+    const response = await apiClient.post("/auth/google", {
+      credential,
+    });
+
+    return response.data;
   },
 
   async deleteAccount() {

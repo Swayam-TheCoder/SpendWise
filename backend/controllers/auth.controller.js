@@ -18,6 +18,7 @@ import {
   getUserSessions,
   revokeSession,
   logoutAllSessions,
+  googleLogin,
 } from "../services/auth.service.js";
 import prisma from "../config/prisma.js";
 
@@ -525,6 +526,36 @@ export const deleteAccountController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to delete account",
+    });
+  }
+};
+
+export const googleLoginController = async (req, res) => {
+  try {
+    const result = await googleLogin({
+      credential: req.body.credential,
+      userAgent: req.get("user-agent"),
+      ipAddress: req.ip,
+    });
+
+    res.cookie(
+      "refreshToken",
+      result.refreshToken,
+      refreshCookieOptions,
+    );
+
+    return res.status(200).json({
+      success: true,
+      user: result.user,
+      accessToken: result.accessToken,
+      sessionId: result.sessionId,
+    });
+  } catch (error) {
+    console.error("Google login error:", error);
+
+    return res.status(401).json({
+      success: false,
+      message: error.message || "Google authentication failed",
     });
   }
 };

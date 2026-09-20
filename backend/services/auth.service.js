@@ -12,6 +12,10 @@ import {
   sendVerificationEmail,
 } from "./email.service.js";
 
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 export const signup = async ({ name, email, password }) => {
   const existingUser = await prisma.user.findUnique({
     where: {
@@ -515,4 +519,116 @@ export const logoutAllSessions = async (userId) => {
       userId,
     },
   });
+};
+
+export const googleLogin = async ({
+  credential,
+  userAgent,
+  ipAddress,
+}) => {
+  if (!credential) {
+    throw new Error("Google credential is required");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (!payload) {
+    throw new Error("Invalid Google credential");
+  }
+
+  const {
+    sub: googleId,
+    email,
+    name,
+    email_verified: emailVerified,
+  } = payload;
+
+  if (!email) {
+    throw new Error("Google account does not have an email");
+  }
+
+  if (!emailVerified) {
+    throw new Error("Google email is not verified");
+  }
+
+  let user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (user) {
+    user = await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        authProvider: "GOOGLE",
+        googleId,
+        isEmailVerified: true,
+        lastLoginAt: new Date(),
+      },
+    });
+  } else {
+    user = await prisma.user.create({
+      data: {
+        name: name || "SpendWise User",
+        email,
+        password: null,
+        authProvider: "GOOGLE",
+        googleId,
+        isEmailVerified: true,
+        isActive: true,
+        lastLoginAt: new Date(),
+      },
+    });
+  }
+
+  const accessToken = generateAccessToken(user.id);
+
+  const session = await prisma.session.create({
+    data: {
+      userId: user.id,
+      refreshTokenHash: "temporary",
+      userAgent,
+      ipAddress,
+      expiresAt: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      ),
+    },
+  });
+
+  const refreshToken = generateRefreshToken({
+    userId: user.id,
+    sessionId: session.id,
+  });
+
+  const refreshTokenHash = await argon2.hash(refreshToken);
+
+  await prisma.session.update({
+    where: {
+      id: session.id,
+    },
+    data: {
+      refreshTokenHash,
+    },
+  });
+
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      authProvider: user.authProvider,
+      isEmailVerified: user.isEmailVerified,
+    },
+    accessToken,
+    refreshToken,
+    sessionId: session.id,
+  };
 };

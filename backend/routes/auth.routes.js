@@ -15,6 +15,7 @@ import {
   logoutAllController,
   googleCallbackController,
   deleteAccountController,
+  googleLoginController,
 } from "../controllers/auth.controller.js";
 
 import {
@@ -24,7 +25,7 @@ import {
 
 import { authRateLimiter } from "../middleware/rateLimit.middleware.js";
 
-import passport from "../config/passport.js";
+// import passport from "../config/passport.js";
 
 const router = express.Router();
 
@@ -63,22 +64,24 @@ router.delete("/sessions/:sessionId", authenticate, revokeSessionController);
 
 router.post("/logout-all", authenticate, logoutAllController);
 
-router.get(
-  "/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-  }),
-);
+// router.get(
+//   "/google",
+//   passport.authenticate("google", {
+//     scope: ["profile", "email"],
+//     session: false,
+//   }),
+// );
 
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
-  }),
-  googleCallbackController,
-);
+// router.get(
+//   "/google/callback",
+//   passport.authenticate("google", {
+//     session: false,
+//     failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_auth_failed`,
+//   }),
+//   googleCallbackController,
+// );
+
+router.post("/google", authRateLimiter, googleLoginController);
 
 router.delete("/account", authenticate, deleteAccountController);
 

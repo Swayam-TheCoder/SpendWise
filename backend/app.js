@@ -8,7 +8,7 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import budgetRoutes from "./routes/budget.routes.js";
 
 import cors from "cors";
-import passport from "./config/passport.js";
+// import passport from "./config/passport.js";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -24,7 +24,7 @@ app.set("trust proxy", 1);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(passport.initialize());
+// app.use(passport.initialize());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:3000",

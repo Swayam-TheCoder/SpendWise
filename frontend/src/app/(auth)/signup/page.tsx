@@ -9,6 +9,7 @@ import { useAuthStore } from "@/features/auth/auth.store";
 
 import AuthShell from "@/components/auth/AuthShell";
 import { authApi } from "@/features/auth/auth.api";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -175,14 +176,38 @@ export default function SignupPage() {
           <div className="h-px flex-1 bg-white/[0.07]" />
         </div>
 
-        <button
-          type="button"
-          onClick={authApi.googleLogin}
-          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.02] text-sm font-medium text-white/70 transition hover:bg-white/[0.05] hover:text-white"
-        >
-          <span className="text-base font-bold">G</span>
-          Continue with Google
-        </button>
+        <GoogleLogin
+          onSuccess={async (credentialResponse) => {
+            try {
+              setError("");
+              setLoading(true);
+
+              if (!credentialResponse.credential) {
+                throw new Error("Google authentication failed");
+              }
+
+              const response = await authApi.googleLogin(
+                credentialResponse.credential,
+              );
+
+              useAuthStore
+                .getState()
+                .setAuth(response.accessToken, response.user);
+
+              router.push("/dashboard");
+            } catch (error: any) {
+              setError(
+                error?.response?.data?.message ||
+                  "Google sign-in failed. Please try again.",
+              );
+            } finally {
+              setLoading(false);
+            }
+          }}
+          onError={() => {
+            setError("Google sign-in failed. Please try again.");
+          }}
+        />
 
         <p className="pt-2 text-center text-[10px] leading-5 text-white/20">
           By creating an account, you agree to our Terms of Service and Privacy
