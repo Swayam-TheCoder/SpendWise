@@ -43,6 +43,7 @@ import {
 } from "recharts";
 import { Budget, getBudgets } from "@/services/budget.service";
 import { useDashboardStore } from "@/features/dashboard/dashboard.store";
+import Image from "next/image";
 
 const navItems = [
   { label: "Overview", icon: Home, path: "/" },
@@ -212,8 +213,15 @@ export default function DashboardPage() {
 
           <div className="flex h-[76px] items-center border-b border-white/[0.08] px-6">
             <div className="flex items-center gap-3">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black">
-                <Wallet className="h-5 w-5" />
+              <div className="flex items-center px-1">
+                <Image
+                  src="/spendwise-logo.png"
+                  alt="SpendWise"
+                  width={140}
+                  height={40}
+                  className="h-9 w-auto object-contain rounded-xl"
+                  priority
+                />
               </div>
 
               <div>
@@ -381,51 +389,76 @@ export default function DashboardPage() {
         <main className="min-w-0 flex-1">
           {/* TOP BAR */}
 
-          <header className="flex h-[76px] items-center justify-between border-b border-white/[0.08] px-6 lg:px-9">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/70 transition hover:bg-white/[0.06] lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+          <header className="flex min-h-[64px] items-center justify-between border-b border-white/[0.08] px-4 sm:h-[72px] sm:px-6 lg:h-[76px] lg:px-9">
+            {/* LEFT */}
+            <div className="flex min-w-0 items-center gap-3">
+              {/* Mobile menu */}
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/60 transition hover:bg-white/[0.06] lg:hidden"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
 
-            <div>
-              <p className="text-xs text-white/30">
-                {new Date().toLocaleDateString("en-IN", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
+              <div className="min-w-0">
+                {/* Desktop date */}
+                <p className="hidden text-xs text-white/30 sm:block">
+                  {new Date().toLocaleDateString("en-IN", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
 
-              <h2 className="mt-0.5 text-sm font-medium">Financial overview</h2>
+                <h2 className="truncate text-sm font-medium text-white/90 sm:mt-0.5 hidden sm:inline">
+                  Financial overview
+                </h2>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] transition hover:bg-white/[0.06]">
-                <Bell className="h-4 w-4 text-white/60" />
+            {/* RIGHT */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Notifications */}
+              <button
+                type="button"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] transition hover:bg-white/[0.06]"
+              >
+                <Bell className="h-4 w-4 text-white/55" />
 
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-violet-400" />
               </button>
 
-              <div className="relative hidden sm:block">
+              {/* Month selector */}
+              <div className="relative">
                 <button
                   type="button"
                   onClick={() => setMonthDropdownOpen((open) => !open)}
-                  className="flex min-w-[150px] items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-xs text-white/70 transition hover:border-white/[0.14] hover:bg-white/[0.06]"
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 text-xs text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.06] sm:h-auto sm:min-w-[150px] sm:justify-between sm:gap-3 sm:px-3.5 sm:py-2.5"
                 >
                   <span>
-                    {new Date(
-                      `${selectedMonth}-01T00:00:00`,
-                    ).toLocaleDateString("en-IN", {
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {/* Mobile: short month */}
+                    <span className="sm:hidden">
+                      {new Date(
+                        `${selectedMonth}-01T00:00:00`,
+                      ).toLocaleDateString("en-IN", {
+                        month: "short",
+                      })}
+                    </span>
+
+                    {/* Desktop */}
+                    <span className="hidden sm:inline">
+                      {new Date(
+                        `${selectedMonth}-01T00:00:00`,
+                      ).toLocaleDateString("en-IN", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
                   </span>
 
                   <ChevronDown
-                    className={`h-3.5 w-3.5 text-white/40 transition-transform ${
+                    className={`h-3.5 w-3.5 text-white/35 transition-transform ${
                       monthDropdownOpen ? "rotate-180" : ""
                     }`}
                   />
@@ -435,6 +468,7 @@ export default function DashboardPage() {
                   <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111] p-1.5 shadow-2xl shadow-black/40">
                     {Array.from({ length: 12 }, (_, index) => {
                       const date = new Date();
+
                       date.setDate(1);
                       date.setMonth(date.getMonth() - index);
 
@@ -475,12 +509,17 @@ export default function DashboardPage() {
                 )}
               </div>
 
+              {/* Add transaction */}
               <button
-                className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-white/90"
+                type="button"
+                className="flex h-9 shrink-0 items-center justify-center rounded-xl bg-white px-3 text-xs font-medium text-black transition hover:bg-white/90 sm:h-auto sm:gap-2 sm:px-3 sm:py-2"
                 onClick={() => router.push("/transactions")}
+                aria-label="Add transaction"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add transaction
+
+                {/* Hide text on mobile */}
+                <span className="hidden sm:inline">Add transaction</span>
               </button>
             </div>
           </header>
@@ -935,7 +974,7 @@ export default function DashboardPage() {
             {/* ================= MOBILE APP ================= */}
             <div className="mt-4">
               <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03]">
-                <div className="relative min-h-[260px] p-6 sm:p-8">
+                <div className="relative min-h-[220px] p-5 sm:min-h-[260px] sm:p-8">
                   {/* Background glow */}
                   <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
 
@@ -946,11 +985,11 @@ export default function DashboardPage() {
                           {mobileSlides[mobileSlide].eyebrow}
                         </p>
 
-                        <h3 className="mt-4 whitespace-pre-line text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                        <h3 className="mt-3 whitespace-pre-line text-2xl font-semibold leading-tight tracking-tight text-white sm:mt-4 sm:text-4xl">
                           {mobileSlides[mobileSlide].title}
                         </h3>
 
-                        <p className="mt-4 max-w-lg text-sm leading-6 text-white/40">
+                        <p className="mt-3 max-w-lg text-[13px] leading-5 text-white/40 sm:mt-4 sm:text-sm sm:leading-6">
                           {mobileSlides[mobileSlide].description}
                         </p>
                       </div>
@@ -1033,22 +1072,32 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <aside className="relative flex h-full w-[280px] flex-col border-r border-white/[0.08] bg-[#090909] p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold tracking-tight">
-                  SpendWise
-                </p>
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/30">
-                  Finance OS
-                </p>
+            <div className="flex h-[68px] items-center justify-between border-b border-white/[0.08] px-5">
+              <div className="flex items-center">
+                <Image
+                  src="/spendwise-logo.png"
+                  alt="SpendWise"
+                  width={130}
+                  height={38}
+                  className="h-10 w-auto object-contain"
+                  priority
+                />
+                <div className="ml-2 flex flex-col items-start">
+                  <p className="text-lg font-semibold tracking-tight">
+                    SpendWise
+                  </p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/30">
+                    Finance OS
+                  </p>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/[0.06] hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50 transition hover:bg-white/[0.06] hover:text-white"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 

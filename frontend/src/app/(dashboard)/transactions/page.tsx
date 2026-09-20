@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -47,7 +47,7 @@ export default function TransactionsPage() {
   );
 
   const [page, setPage] = useState(1);
-
+  const requestIdRef = useRef(0);
   const [pagination, setPagination] = useState<
     ExpenseListResponse["pagination"] | null
   >(null);
@@ -61,6 +61,16 @@ export default function TransactionsPage() {
     paymentMethod: "OTHER",
     date: new Date().toISOString().split("T")[0],
   });
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const activeFilterCount = [
+    categoryId,
+    startDate,
+    endDate,
+    sortBy !== "date" ? sortBy : "",
+    sortOrder !== "desc" ? sortOrder : "",
+  ].filter(Boolean).length;
 
   const openAddExpense = async () => {
     try {
@@ -106,15 +116,17 @@ export default function TransactionsPage() {
     }
   };
 
-  const loadExpenses = async () => {
+  const loadExpenses = async (requestedPage = page) => {
+    const requestId = ++requestIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
 
       const data = await getExpenses({
-        page,
+        page: requestedPage,
         limit: 10,
-        search: search || undefined,
+        search: search.trim() || undefined,
         categoryId: categoryId || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -122,13 +134,29 @@ export default function TransactionsPage() {
         sortOrder,
       });
 
+      // Ignore an older request that finished after a newer request.
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setExpenses(data.expenses);
       setPagination(data.pagination);
+
+      // Backend may return a corrected page.
+      if (data.pagination?.page !== requestedPage) {
+        setPage(data.pagination.page);
+      }
     } catch (error) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       console.error("Failed to load expenses:", error);
       setError("Unable to load transactions.");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -145,17 +173,36 @@ export default function TransactionsPage() {
     loadCategories();
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [search, categoryId, startDate, endDate, sortBy, sortOrder]);
+  const filterKey = [
+    search.trim(),
+    categoryId,
+    startDate,
+    endDate,
+    sortBy,
+    sortOrder,
+  ].join("|");
+
+  const previousFilterKeyRef = useRef(filterKey);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      loadExpenses();
-    }, 300);
+    const filtersChanged = previousFilterKeyRef.current !== filterKey;
+
+    previousFilterKeyRef.current = filterKey;
+
+    if (filtersChanged && page !== 1) {
+      setPage(1);
+      return;
+    }
+
+    const timeout = setTimeout(
+      () => {
+        loadExpenses(page);
+      },
+      search.trim() ? 350 : 0,
+    );
 
     return () => clearTimeout(timeout);
-  }, [search, categoryId, startDate, endDate, sortBy, sortOrder, page]);
+  }, [filterKey, page]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -170,7 +217,7 @@ export default function TransactionsPage() {
         return;
       }
 
-      await loadExpenses();
+      await loadExpenses(page);
     } catch (error) {
       console.error("Failed to delete expense:", error);
       alert("Unable to delete transaction.");
@@ -223,92 +270,267 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-        <div className="mb-4 flex items-center gap-2 text-sm font-medium text-white/70">
-          <SlidersHorizontal size={16} />
-          Filters
+      <div className="mb-6">
+        {/* Mobile filter trigger */}
+        <button
+          type="button"
+          onClick={() => setShowFilters(true)}
+          className="flex h-11 w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-sm transition hover:bg-white/[0.05] md:hidden"
+        >
+          <span className="flex items-center gap-2 text-white/70">
+            <SlidersHorizontal size={16} />
+            Filters
+          </span>
+
+          <span className="flex items-center gap-2">
+            {activeFilterCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-400 px-1.5 text-[10px] font-semibold text-black">
+                {activeFilterCount}
+              </span>
+            )}
+
+            <span className="text-white/30">
+              {showFilters ? "Hide" : "Edit"}
+            </span>
+          </span>
+        </button>
+
+        {/* Desktop filters */}
+        <div className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 md:block">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-medium text-white/70">
+              <SlidersHorizontal size={16} />
+              Filters
+            </div>
+
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryId("");
+                  setStartDate("");
+                  setEndDate("");
+                  setSortBy("date");
+                  setSortOrder("desc");
+                }}
+                className="flex items-center gap-1.5 text-xs text-white/35 transition hover:text-white"
+              >
+                <X size={13} />
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+            {/* Category */}
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-white/20"
+            >
+              <option value="">All categories</option>
+
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.icon ? `${category.icon} ` : ""}
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Start */}
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-white/20"
+            />
+
+            {/* End */}
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-white/20"
+            />
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(e.target.value as "date" | "amount" | "createdAt")
+              }
+              className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-white/20"
+            >
+              <option value="date">Sort by date</option>
+              <option value="amount">Sort by amount</option>
+              <option value="createdAt">Sort by created</option>
+            </select>
+
+            {/* Order */}
+            <button
+              type="button"
+              onClick={() =>
+                setSortOrder((current) => (current === "desc" ? "asc" : "desc"))
+              }
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+            >
+              <ArrowUpDown size={16} />
+
+              {sortOrder === "desc" ? "Descending" : "Ascending"}
+            </button>
+          </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-          {/* Category */}
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
-          >
-            <option value="">All categories</option>
+        {/* Mobile filter sheet */}
+        {showFilters && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            {/* Backdrop */}
+            <button
+              type="button"
+              aria-label="Close filters"
+              onClick={() => setShowFilters(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
 
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.icon ? `${category.icon} ` : ""}
-                {category.name}
-              </option>
-            ))}
-          </select>
+            {/* Sheet */}
+            <div className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/[0.08] bg-[#0c0c0c] px-5 pb-6 pt-4 shadow-2xl">
+              {/* Handle */}
+              <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/15" />
 
-          {/* Start date */}
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
-          />
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-white">
+                    Filters
+                  </h2>
 
-          {/* End date */}
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
-          />
+                  <p className="mt-1 text-xs text-white/30">
+                    Narrow down your transactions
+                  </p>
+                </div>
 
-          {/* Sort by */}
-          <select
-            value={sortBy}
-            onChange={(e) =>
-              setSortBy(e.target.value as "date" | "amount" | "createdAt")
-            }
-            className="rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white outline-none"
-          >
-            <option value="date">Sort by date</option>
-            <option value="amount">Sort by amount</option>
-            <option value="createdAt">Sort by created</option>
-          </select>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/50"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-          {/* Sort order */}
-          <button
-            type="button"
-            onClick={() =>
-              setSortOrder((current) => (current === "desc" ? "asc" : "desc"))
-            }
-            className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-[#111] px-4 py-3 text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <ArrowUpDown size={16} />
+              <div className="space-y-4">
+                {/* Category */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/40">
+                    Category
+                  </label>
 
-            {sortOrder === "desc" ? "Descending" : "Ascending"}
-          </button>
-        </div>
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#151515] px-3 text-sm text-white outline-none"
+                  >
+                    <option value="">All categories</option>
 
-        {/* Clear filters */}
-        {(categoryId ||
-          startDate ||
-          endDate ||
-          sortBy !== "date" ||
-          sortOrder !== "desc") && (
-          <button
-            type="button"
-            onClick={() => {
-              setCategoryId("");
-              setStartDate("");
-              setEndDate("");
-              setSortBy("date");
-              setSortOrder("desc");
-            }}
-            className="mt-3 flex items-center gap-2 text-xs text-white/40 transition hover:text-white"
-          >
-            <X size={14} />
-            Clear filters
-          </button>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.icon ? `${category.icon} ` : ""}
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dates */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/40">
+                    Date range
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#151515] px-3 text-sm text-white outline-none"
+                    />
+
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#151515] px-3 text-sm text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/40">
+                    Sort by
+                  </label>
+
+                  <select
+                    value={sortBy}
+                    onChange={(e) =>
+                      setSortBy(
+                        e.target.value as "date" | "amount" | "createdAt",
+                      )
+                    }
+                    className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#151515] px-3 text-sm text-white outline-none"
+                  >
+                    <option value="date">Date</option>
+                    <option value="amount">Amount</option>
+                    <option value="createdAt">Created</option>
+                  </select>
+                </div>
+
+                {/* Order */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSortOrder((current) =>
+                      current === "desc" ? "asc" : "desc",
+                    )
+                  }
+                  className="flex h-11 w-full items-center justify-between rounded-xl border border-white/[0.08] bg-[#151515] px-3 text-sm text-white/70"
+                >
+                  <span>Order</span>
+
+                  <span className="flex items-center gap-2 text-white/50">
+                    <ArrowUpDown size={14} />
+
+                    {sortOrder === "desc" ? "Newest first" : "Oldest first"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Bottom actions */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryId("");
+                    setStartDate("");
+                    setEndDate("");
+                    setSortBy("date");
+                    setSortOrder("desc");
+                  }}
+                  className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] py-3 text-sm text-white/60 transition hover:bg-white/[0.06] hover:text-white"
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(false)}
+                  className="flex-1 rounded-xl bg-white py-3 text-sm font-medium text-black transition hover:bg-white/90"
+                >
+                  Apply filters
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -354,23 +576,33 @@ export default function TransactionsPage() {
           expenses.map((expense) => (
             <div
               key={expense.id}
-              className="grid gap-4 border-b border-white/[0.05] px-6 py-5 transition hover:bg-white/[0.025] md:grid-cols-[2fr_1.2fr_1fr_1fr_50px] md:items-center"
+              className="grid gap-3 border-b border-white/[0.05] px-4 py-4 transition hover:bg-white/[0.025] sm:px-6 sm:py-5 md:grid-cols-[2fr_1.2fr_1fr_1fr_50px] md:items-center"
             >
-              {/* Description */}
-              <div>
-                <p className="font-medium text-white/90">
-                  {expense.description}
-                </p>
+              {/* Description + amount */}
+              <div className="flex items-start justify-between gap-4 md:block">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-white/90">
+                    {expense.description}
+                  </p>
 
-                <p className="mt-1 text-xs text-white/30">
-                  {expense.paymentMethod}
-                </p>
+                  <p className="mt-1 text-xs text-white/30">
+                    {expense.paymentMethod}
+                  </p>
+                </div>
+
+                {/* Mobile amount */}
+                <div className="shrink-0 font-medium text-white md:hidden">
+                  − ₹
+                  {expense.amount.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
               </div>
 
               {/* Category */}
               <div>
                 <span
-                  className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs"
+                  className="inline-flex items-center rounded-lg px-2.5 py-1.5 text-xs"
                   style={{
                     backgroundColor: `${
                       expense.categoryRef.color || "#a78bfa"
@@ -387,7 +619,7 @@ export default function TransactionsPage() {
               </div>
 
               {/* Date */}
-              <div className="text-sm text-white/40">
+              <div className="text-xs text-white/35 md:text-sm">
                 {new Date(expense.date).toLocaleDateString("en-IN", {
                   day: "numeric",
                   month: "short",
@@ -396,7 +628,7 @@ export default function TransactionsPage() {
               </div>
 
               {/* Amount */}
-              <div className="font-medium text-white">
+              <div className="hidden font-medium text-white md:block">
                 − ₹
                 {expense.amount.toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
@@ -406,19 +638,21 @@ export default function TransactionsPage() {
               {/* Actions */}
               <div className="flex justify-end gap-1">
                 <button
+                  type="button"
                   onClick={() => openEditExpense(expense)}
                   className="rounded-lg p-2 text-white/30 transition hover:bg-white/[0.06] hover:text-white"
                   title="Edit transaction"
                 >
-                  <Pencil size={16} />
+                  <Pencil size={15} />
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleDelete(expense.id)}
                   className="rounded-lg p-2 text-white/30 transition hover:bg-red-500/10 hover:text-red-400"
                   title="Delete transaction"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
@@ -427,30 +661,34 @@ export default function TransactionsPage() {
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-white/35">
-            Showing page {pagination.page} of {pagination.totalPages}
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-white/30">
+            Page {pagination.page} of {pagination.totalPages}
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
             <button
               type="button"
-              disabled={pagination.page === 1}
-              onClick={() => setPage((current) => current - 1)}
-              className="rounded-lg border border-white/[0.08] px-4 py-2 text-sm text-white/60 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-30"
+              disabled={pagination.page === 1 || loading}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              className="flex h-9 flex-1 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 text-xs text-white/60 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
             >
               Previous
             </button>
 
-            <span className="px-3 text-sm text-white/60">
+            <div className="flex h-9 min-w-9 items-center justify-center rounded-xl bg-white/[0.07] px-3 text-xs font-medium text-white">
               {pagination.page}
-            </span>
+            </div>
 
             <button
               type="button"
-              disabled={pagination.page === pagination.totalPages}
-              onClick={() => setPage((current) => current + 1)}
-              className="rounded-lg border border-white/[0.08] px-4 py-2 text-sm text-white/60 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-30"
+              disabled={pagination.page === pagination.totalPages || loading}
+              onClick={() =>
+                setPage((current) =>
+                  Math.min(pagination.totalPages, current + 1),
+                )
+              }
+              className="flex h-9 flex-1 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 text-xs text-white/60 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
             >
               Next
             </button>

@@ -82,25 +82,23 @@ export const getExpenses = async (
     }
   }
 
-  const [expenses, total] = await prisma.$transaction([
-    prisma.expense.findMany({
-      where,
-      skip,
-      take: limit,
+  const [expenses, total] = await Promise.all([
+  prisma.expense.findMany({
+    where,
+    skip,
+    take: limit,
+    include: {
+      categoryRef: true,
+    },
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+  }),
 
-      include: {
-        categoryRef: true,
-      },
-
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-    }),
-
-    prisma.expense.count({
-      where,
-    }),
-  ]);
+  prisma.expense.count({
+    where,
+  }),
+]);
 
   return {
     expenses,
