@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-
 import { useAuthStore } from "@/features/auth/auth.store";
 
 export default function DashboardLayout({
@@ -21,12 +20,13 @@ export default function DashboardLayout({
   );
 
   useEffect(() => {
-    if (isAuthChecked && !isAuthenticated) {
+    if (!isAuthChecked) return;
+
+    if (!isAuthenticated) {
       router.replace("/login");
     }
   }, [isAuthChecked, isAuthenticated, router]);
 
-  // Auth status decide hone tak dashboard render mat karo
   if (!isAuthChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
@@ -37,10 +37,9 @@ export default function DashboardLayout({
     );
   }
 
-  // Not authenticated: redirect hone tak blank
   if (!isAuthenticated) {
     return null;
   }
 
   return <>{children}</>;
-}
+} 
