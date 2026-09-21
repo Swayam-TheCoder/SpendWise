@@ -28,7 +28,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "src/app/(dashboard)/AI_insights/page.ysx"
   ],
   "exclude": ["node_modules"]
 }
