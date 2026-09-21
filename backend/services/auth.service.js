@@ -13,6 +13,7 @@ import {
 } from "./email.service.js";
 
 import { OAuth2Client } from "google-auth-library";
+import { DEFAULT_CATEGORIES } from "../constants/defaultCategories.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -34,7 +35,12 @@ export const signup = async ({ name, email, password }) => {
       name,
       email,
       password: hashedPassword,
+
+      categories: {
+        create: DEFAULT_CATEGORIES,
+      },
     },
+
     select: {
       id: true,
       name: true,
@@ -46,7 +52,6 @@ export const signup = async ({ name, email, password }) => {
   });
 
   const verificationToken = generateVerificationToken();
-  //  /verify-email?token=${verificationToken}, its a verification token not the hashed token.
 
   const tokenHash = hashToken(verificationToken);
 
@@ -55,7 +60,7 @@ export const signup = async ({ name, email, password }) => {
       userId: user.id,
       tokenHash,
       expiresAt: new Date(
-        Date.now() + 15 * 60 * 1000, // 15 minutes
+        Date.now() + 15 * 60 * 1000,
       ),
     },
   });

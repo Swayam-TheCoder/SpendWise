@@ -26,6 +26,7 @@ import {
 import { getCategories, type Category } from "@/services/category.service";
 import { useDashboardStore } from "@/features/dashboard/dashboard.store";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function BudgetsPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -339,7 +340,14 @@ export default function BudgetsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05]">
-                  <Wallet className="h-4 w-4 text-white/60" />
+                  <Image
+                                    src="/spendwise-logo.png"
+                                    alt="SpendWise"
+                                    width={130}
+                                    height={38}
+                                    className="h-10 w-auto object-contain rounded-xl"
+                                    priority
+                                  />
                 </div>
 
                 <div>

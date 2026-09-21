@@ -126,11 +126,20 @@ export const updateCategoryController = async (req, res) => {
       validation.data,
     );
 
+    if (result.count === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    const category = await getCategoryById(req.userId, req.params.id);
+
     return res.status(200).json({
       success: true,
       message: "Category updated successfully",
       data: {
-        updated: result.count,
+        category,
       },
     });
   } catch (error) {
@@ -173,8 +182,7 @@ export const deleteCategoryController = async (req, res) => {
     ) {
       return res.status(409).json({
         success: false,
-        message:
-          "Cannot delete category because it is being used by expenses",
+        message: "Cannot delete category because it is being used by expenses",
       });
     }
 
